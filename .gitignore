@@ -1,4 +1,2 @@
+.vscode/*
 build/*
-deps/googletest/*
-deps/jsoncpp/*
-deps/libevent/*
