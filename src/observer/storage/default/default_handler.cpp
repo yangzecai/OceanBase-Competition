@@ -56,7 +56,7 @@ RC DefaultHandler::init(const char *base_dir) {
 void DefaultHandler::destroy() {
   sync();
 
-  for (const auto & iter : opened_dbs_) {
+  for (const auto &iter : opened_dbs_) {
     delete iter.second;
   }
   opened_dbs_.clear();
@@ -119,7 +119,10 @@ RC DefaultHandler::execute(const char *sql) {
   return RC::GENERIC_ERROR;
 }
 
-RC DefaultHandler::create_table(const char *dbname, const char *relation_name, int attribute_count, const AttrInfo *attributes) {
+RC DefaultHandler::create_table(const char *dbname,
+                                const char *relation_name,
+                                int attribute_count,
+                                const AttrInfo *attributes) {
   Db *db = find_db(dbname);
   if (db == nullptr) {
     return RC::SCHEMA_DB_NOT_OPENED;
@@ -130,12 +133,16 @@ RC DefaultHandler::create_table(const char *dbname, const char *relation_name, i
 RC DefaultHandler::drop_table(const char *dbname, const char *relation_name) {
   Db *db = find_db(dbname);
   if (db == nullptr) {
-      return RC::SCHEMA_DB_NOT_OPENED;
+    return RC::SCHEMA_DB_NOT_OPENED;
   }
   return db->drop_table(relation_name);
 }
 
-RC DefaultHandler::create_index(Trx *trx, const char *dbname, const char *relation_name, const char *index_name, const char *attribute_name) {
+RC DefaultHandler::create_index(Trx *trx,
+                                const char *dbname,
+                                const char *relation_name,
+                                const char *index_name,
+                                const char *attribute_name) {
   Table *table = find_table(dbname, relation_name);
   if (nullptr == table) {
     return RC::SCHEMA_TABLE_NOT_EXIST;
@@ -148,7 +155,11 @@ RC DefaultHandler::drop_index(Trx *trx, const char *dbname, const char *relation
   return RC::GENERIC_ERROR;
 }
 
-RC DefaultHandler::insert_record(Trx *trx, const char *dbname, const char *relation_name, int value_num, const Value *values) {
+RC DefaultHandler::insert_record(Trx *trx,
+                                 const char *dbname,
+                                 const char *relation_name,
+                                 int value_num,
+                                 const Value *values) {
   Table *table = find_table(dbname, relation_name);
   if (nullptr == table) {
     return RC::SCHEMA_TABLE_NOT_EXIST;
@@ -171,8 +182,14 @@ RC DefaultHandler::delete_record(Trx *trx, const char *dbname, const char *relat
   return table->delete_record(trx, &condition_filter, deleted_count);
 }
 
-RC DefaultHandler::update_record(Trx *trx, const char *dbname, const char *relation_name, const char *attribute_name, const Value *value,
-                          int condition_num, const Condition *conditions, int *updated_count) {
+RC DefaultHandler::update_record(Trx *trx,
+                                 const char *dbname,
+                                 const char *relation_name,
+                                 const char *attribute_name,
+                                 const Value *value,
+                                 int condition_num,
+                                 const Condition *conditions,
+                                 int *updated_count) {
   Table *table = find_table(dbname, relation_name);
   if (nullptr == table) {
     return RC::SCHEMA_TABLE_NOT_EXIST;
@@ -182,7 +199,7 @@ RC DefaultHandler::update_record(Trx *trx, const char *dbname, const char *relat
 }
 
 Db *DefaultHandler::find_db(const char *dbname) const {
-  std::map<std::string, Db*>::const_iterator iter = opened_dbs_.find(dbname);
+  std::map<std::string, Db *>::const_iterator iter = opened_dbs_.find(dbname);
   if (iter == opened_dbs_.end()) {
     return nullptr;
   }
@@ -204,7 +221,7 @@ Table *DefaultHandler::find_table(const char *dbname, const char *table_name) co
 
 RC DefaultHandler::sync() {
   RC rc = RC::SUCCESS;
-  for (const auto & db_pair: opened_dbs_) {
+  for (const auto &db_pair: opened_dbs_) {
     Db *db = db_pair.second;
     rc = db->sync();
     if (rc != RC::SUCCESS) {

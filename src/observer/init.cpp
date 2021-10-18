@@ -93,18 +93,18 @@ int init_log(ProcessParam *process_cfg, Ini &properties) {
     key = ("LOG_FILE_LEVEL");
     it = log_section.find(key);
     if (it != log_section.end()) {
-      int log = (int)log_level;
+      int log = (int) log_level;
       str_to_val(it->second, log);
-      log_level = (LOG_LEVEL)log;
+      log_level = (LOG_LEVEL) log;
     }
 
     LOG_LEVEL console_level = LOG_LEVEL_INFO;
     key = ("LOG_CONSOLE_LEVEL");
     it = log_section.find(key);
     if (it != log_section.end()) {
-      int log = (int)console_level;
+      int log = (int) console_level;
       str_to_val(it->second, log);
-      console_level = (LOG_LEVEL)log;
+      console_level = (LOG_LEVEL) log;
     }
 
     LoggerFactory::init_default(log_file_name, log_level, console_level);
@@ -140,21 +140,21 @@ void cleanup_log() {
 
 int prepare_init_seda() {
   static StageFactory session_stage_factory("SessionStage",
-                                          &SessionStage::make_stage);
+                                            &SessionStage::make_stage);
   static StageFactory resolve_stage_factory("ResolveStage",
-                                          &ResolveStage::make_stage);
+                                            &ResolveStage::make_stage);
   static StageFactory query_cache_stage_factory("QueryCacheStage",
-                                             &QueryCacheStage::make_stage);
+                                                &QueryCacheStage::make_stage);
   static StageFactory parse_stage_factory("ParseStage", &ParseStage::make_stage);
   static StageFactory plan_cache_factory("PlanCacheStage",
-                                       &PlanCacheStage::make_stage);
+                                         &PlanCacheStage::make_stage);
   static StageFactory optimize_factory("OptimizeStage",
-                                      &OptimizeStage::make_stage);
+                                       &OptimizeStage::make_stage);
   static StageFactory execute_factory("ExecuteStage", &ExecuteStage::make_stage);
   static StageFactory default_storage_factory("DefaultStorageStage",
-                                            &DefaultStorageStage::make_stage);
+                                              &DefaultStorageStage::make_stage);
   static StageFactory mem_storage_factory("MemStorageStage",
-                                        &MemStorageStage::make_stage);
+                                          &MemStorageStage::make_stage);
   return 0;
 }
 
@@ -171,7 +171,7 @@ int init(ProcessParam *process_param) {
   int rc = STATUS_SUCCESS;
   if (process_param->is_demon()) {
     rc = daemonize_service(process_param->get_std_out().c_str(),
-                          process_param->get_std_err().c_str());
+                           process_param->get_std_err().c_str());
     if (rc != 0) {
       std::cerr << "Shutdown due to failed to daemon current process!"
                 << std::endl;

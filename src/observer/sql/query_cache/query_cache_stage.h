@@ -18,11 +18,11 @@ See the Mulan PSL v2 for more details. */
 #include "common/seda/stage.h"
 
 class QueryCacheStage : public common::Stage {
-public:
+ public:
   ~QueryCacheStage();
   static Stage *make_stage(const std::string &tag);
 
-protected:
+ protected:
   // common function
   QueryCacheStage(const char *tag);
   bool set_properties();
@@ -31,10 +31,10 @@ protected:
   void cleanup();
   void handle_event(common::StageEvent *event);
   void callback_event(common::StageEvent *event,
-                     common::CallbackContext *context);
+                      common::CallbackContext *context);
 
-protected:
-private:
+ protected:
+ private:
   Stage *plan_cache_stage = nullptr;
 };
 

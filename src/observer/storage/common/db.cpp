@@ -25,7 +25,6 @@ See the Mulan PSL v2 for more details. */
 #include "storage/common/table.h"
 #include "storage/common/meta_util.h"
 
-
 Db::~Db() {
   for (auto &iter : opened_tables_) {
     delete iter.second;
@@ -71,14 +70,14 @@ RC Db::create_table(const char *table_name, int attribute_count, const AttrInfo 
   return RC::SUCCESS;
 }
 
-RC Db::drop_table(const char* table_name) {
+RC Db::drop_table(const char *table_name) {
   RC rc = RC::SUCCESS;
   if (opened_tables_.find(table_name) == opened_tables_.end()) {
     LOG_TRACE("Table does not exist in dp::opened_tables. table name=%s", table_name);
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }
 
-  Table* table = opened_tables_[table_name];
+  Table *table = opened_tables_[table_name];
 
   rc = table->drop();
   if (rc != RC::SUCCESS) {
@@ -122,8 +121,8 @@ RC Db::open_all_tables() {
 
     if (opened_tables_.count(table->name()) != 0) {
       delete table;
-      LOG_ERROR("Duplicate table with difference file name. table=%s, the other filename=%s", 
-        table->name(), filename.c_str());
+      LOG_ERROR("Duplicate table with difference file name. table=%s, the other filename=%s",
+                table->name(), filename.c_str());
       return RC::GENERIC_ERROR;
     }
 

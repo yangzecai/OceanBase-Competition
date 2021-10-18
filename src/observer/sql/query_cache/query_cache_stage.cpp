@@ -33,7 +33,7 @@ QueryCacheStage::~QueryCacheStage() {}
 
 //! Parse properties, instantiate a stage object
 Stage *QueryCacheStage::make_stage(const std::string &tag) {
-  QueryCacheStage *stage = new (std::nothrow) QueryCacheStage(tag.c_str());
+  QueryCacheStage *stage = new(std::nothrow) QueryCacheStage(tag.c_str());
   if (stage == nullptr) {
     LOG_ERROR("new QueryCacheStage failed");
     return nullptr;
@@ -95,7 +95,7 @@ void QueryCacheStage::handle_event(StageEvent *event) {
 }
 
 void QueryCacheStage::callback_event(StageEvent *event,
-                                    CallbackContext *context) {
+                                     CallbackContext *context) {
   LOG_TRACE("Enter\n");
 
   // update data to query cache here

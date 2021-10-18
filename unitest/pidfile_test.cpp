@@ -22,7 +22,7 @@ See the Mulan PSL v2 for more details. */
 using namespace common;
 
 int main() {
-  long long pid = (long long)getpid();
+  long long pid = (long long) getpid();
 
   const char *programName = "test";
   writePidFile(programName);

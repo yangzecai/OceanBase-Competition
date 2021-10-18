@@ -20,11 +20,9 @@ See the Mulan PSL v2 for more details. */
 
 using namespace common;
 
-ConditionFilter::~ConditionFilter()
-{}
+ConditionFilter::~ConditionFilter() {}
 
-DefaultConditionFilter::DefaultConditionFilter()
-{
+DefaultConditionFilter::DefaultConditionFilter() {
   left_.is_attr = false;
   left_.attr_length = 0;
   left_.attr_offset = 0;
@@ -35,11 +33,9 @@ DefaultConditionFilter::DefaultConditionFilter()
   right_.attr_offset = 0;
   right_.value = nullptr;
 }
-DefaultConditionFilter::~DefaultConditionFilter()
-{}
+DefaultConditionFilter::~DefaultConditionFilter() {}
 
-RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrType attr_type, CompOp comp_op)
-{
+RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrType attr_type, CompOp comp_op) {
   if (attr_type < CHARS || attr_type > FLOATS) {
     LOG_ERROR("Invalid condition with unsupported attribute type: %d", attr_type);
     return RC::INVALID_ARGUMENT;
@@ -57,8 +53,7 @@ RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrT
   return RC::SUCCESS;
 }
 
-RC DefaultConditionFilter::init(Table &table, const Condition &condition)
-{
+RC DefaultConditionFilter::init(Table &table, const Condition &condition) {
   const TableMeta &table_meta = table.table_meta();
   ConDesc left;
   ConDesc right;
@@ -123,21 +118,20 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
   return init(left, right, type_left, condition.comp);
 }
 
-bool DefaultConditionFilter::filter(const Record &rec) const
-{
+bool DefaultConditionFilter::filter(const Record &rec) const {
   char *left_value = nullptr;
   char *right_value = nullptr;
 
   if (left_.is_attr) {  // value
-    left_value = (char *)(rec.data + left_.attr_offset);
+    left_value = (char *) (rec.data + left_.attr_offset);
   } else {
-    left_value = (char *)left_.value;
+    left_value = (char *) left_.value;
   }
 
   if (right_.is_attr) {
-    right_value = (char *)(rec.data + right_.attr_offset);
+    right_value = (char *) (rec.data + right_.attr_offset);
   } else {
-    right_value = (char *)right_.value;
+    right_value = (char *) right_.value;
   }
 
   int cmp_result = 0;
@@ -145,67 +139,59 @@ bool DefaultConditionFilter::filter(const Record &rec) const
     case CHARS: {  // 字符串都是定长的，直接比较
       // 按照C字符串风格来定
       cmp_result = strcmp(left_value, right_value);
-    } break;
+    }
+      break;
     case INTS: {
       // 没有考虑大小端问题
       // 对int和float，要考虑字节对齐问题,有些平台下直接转换可能会跪
-      int left = *(int *)left_value;
-      int right = *(int *)right_value;
+      int left = *(int *) left_value;
+      int right = *(int *) right_value;
       cmp_result = left - right;
-    } break;
+    }
+      break;
     case FLOATS: {
-      float left = *(float *)left_value;
-      float right = *(float *)right_value;
-      cmp_result = (int)(left - right);
-    } break;
+      float left = *(float *) left_value;
+      float right = *(float *) right_value;
+      cmp_result = (int) (left - right);
+    }
+      break;
     default: {
     }
   }
 
   switch (comp_op_) {
-    case EQUAL_TO:
-      return 0 == cmp_result;
-    case LESS_EQUAL:
-      return cmp_result <= 0;
-    case NOT_EQUAL:
-      return cmp_result != 0;
-    case LESS_THAN:
-      return cmp_result < 0;
-    case GREAT_EQUAL:
-      return cmp_result >= 0;
-    case GREAT_THAN:
-      return cmp_result > 0;
+    case EQUAL_TO:return 0 == cmp_result;
+    case LESS_EQUAL:return cmp_result <= 0;
+    case NOT_EQUAL:return cmp_result != 0;
+    case LESS_THAN:return cmp_result < 0;
+    case GREAT_EQUAL:return cmp_result >= 0;
+    case GREAT_THAN:return cmp_result > 0;
 
-    default:
-      break;
+    default:break;
   }
 
   LOG_PANIC("Never should print this.");
   return cmp_result;  // should not go here
 }
 
-CompositeConditionFilter::~CompositeConditionFilter()
-{
+CompositeConditionFilter::~CompositeConditionFilter() {
   if (memory_owner_) {
     delete[] filters_;
     filters_ = nullptr;
   }
 }
 
-RC CompositeConditionFilter::init(const ConditionFilter *filters[], int filter_num, bool own_memory)
-{
+RC CompositeConditionFilter::init(const ConditionFilter *filters[], int filter_num, bool own_memory) {
   filters_ = filters;
   filter_num_ = filter_num;
   memory_owner_ = own_memory;
   return RC::SUCCESS;
 }
-RC CompositeConditionFilter::init(const ConditionFilter *filters[], int filter_num)
-{
+RC CompositeConditionFilter::init(const ConditionFilter *filters[], int filter_num) {
   return init(filters, filter_num, false);
 }
 
-RC CompositeConditionFilter::init(Table &table, const Condition *conditions, int condition_num)
-{
+RC CompositeConditionFilter::init(Table &table, const Condition *conditions, int condition_num) {
   if (condition_num == 0) {
     return RC::SUCCESS;
   }
@@ -230,11 +216,10 @@ RC CompositeConditionFilter::init(Table &table, const Condition *conditions, int
     }
     condition_filters[i] = default_condition_filter;
   }
-  return init((const ConditionFilter **)condition_filters, condition_num, true);
+  return init((const ConditionFilter **) condition_filters, condition_num, true);
 }
 
-bool CompositeConditionFilter::filter(const Record &rec) const
-{
+bool CompositeConditionFilter::filter(const Record &rec) const {
   for (int i = 0; i < filter_num_; i++) {
     if (!filters_[i]->filter(rec)) {
       return false;

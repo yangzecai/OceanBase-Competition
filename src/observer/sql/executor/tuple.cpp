@@ -21,10 +21,10 @@ Tuple::Tuple(const Tuple &other) {
   exit(1);
 }
 
-Tuple::Tuple(Tuple &&other) noexcept : values_(std::move(other.values_)) {
+Tuple::Tuple(Tuple &&other) noexcept: values_(std::move(other.values_)) {
 }
 
-Tuple & Tuple::operator=(Tuple &&other) noexcept {
+Tuple &Tuple::operator=(Tuple &&other) noexcept {
   if (&other == this) {
     return *this;
   }
@@ -135,7 +135,7 @@ void TupleSchema::print(std::ostream &os) const {
 }
 
 /////////////////////////////////////////////////////////////////////////////
-TupleSet::TupleSet(TupleSet &&other) : tuples_(std::move(other.tuples_)), schema_(other.schema_){
+TupleSet::TupleSet(TupleSet &&other) : tuples_(std::move(other.tuples_)), schema_(other.schema_) {
   other.schema_.clear();
 }
 
@@ -173,7 +173,7 @@ void TupleSet::print(std::ostream &os) const {
   for (const Tuple &item : tuples_) {
     const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
     for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = --values.end();
-          iter != end; ++iter) {
+         iter != end; ++iter) {
       (*iter)->to_string(os);
       os << " | ";
     }
@@ -208,7 +208,7 @@ const std::vector<Tuple> &TupleSet::tuples() const {
 
 /////////////////////////////////////////////////////////////////////////////
 TupleRecordConverter::TupleRecordConverter(Table *table, TupleSet &tuple_set) :
-      table_(table), tuple_set_(tuple_set){
+    table_(table), tuple_set_(tuple_set) {
 }
 
 void TupleRecordConverter::add_record(const char *record) {
@@ -220,12 +220,12 @@ void TupleRecordConverter::add_record(const char *record) {
     assert(field_meta != nullptr);
     switch (field_meta->type()) {
       case INTS: {
-        int value = *(int*)(record + field_meta->offset());
+        int value = *(int *) (record + field_meta->offset());
         tuple.add(value);
       }
-      break;
+        break;
       case FLOATS: {
-        float value = *(float *)(record + field_meta->offset());
+        float value = *(float *) (record + field_meta->offset());
         tuple.add(value);
       }
         break;
@@ -233,7 +233,7 @@ void TupleRecordConverter::add_record(const char *record) {
         const char *s = record + field_meta->offset();  // 现在当做Cstring来处理
         tuple.add(s, strlen(s));
       }
-      break;
+        break;
       default: {
         LOG_PANIC("Unsupported field type. type=%d", field_meta->type());
       }

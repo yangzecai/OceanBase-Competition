@@ -20,14 +20,14 @@ See the Mulan PSL v2 for more details. */
 class ExecutionPlanEvent;
 
 class StorageEvent : public common::StageEvent {
-public:
+ public:
   StorageEvent(ExecutionPlanEvent *exe_event);
   virtual ~StorageEvent();
 
-  ExecutionPlanEvent * exe_event() const {
+  ExecutionPlanEvent *exe_event() const {
     return exe_event_;
   }
-private:
+ private:
   ExecutionPlanEvent *exe_event_;
 };
 

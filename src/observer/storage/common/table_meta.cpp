@@ -26,13 +26,13 @@ static const Json::StaticString FIELD_INDEXES("indexes");
 std::vector<FieldMeta> TableMeta::sys_fields_;
 
 TableMeta::TableMeta(const TableMeta &other) :
-        name_(other.name_),
-        fields_(other.fields_),
-        indexes_(other.indexes_),
-        record_size_(other.record_size_){
+    name_(other.name_),
+    fields_(other.fields_),
+    indexes_(other.indexes_),
+    record_size_(other.record_size_) {
 }
 
-void TableMeta::swap(TableMeta &other) noexcept{
+void TableMeta::swap(TableMeta &other) noexcept {
   name_.swap(other.name_);
   fields_.swap(other.fields_);
   indexes_.swap(other.indexes_);
@@ -105,14 +105,14 @@ const char *TableMeta::name() const {
   return name_.c_str();
 }
 
-const FieldMeta * TableMeta::trx_field() const {
+const FieldMeta *TableMeta::trx_field() const {
   return &fields_[0];
 }
 
-const FieldMeta * TableMeta::field(int index) const {
+const FieldMeta *TableMeta::field(int index) const {
   return &fields_[index];
 }
-const FieldMeta * TableMeta::field(const char *name) const {
+const FieldMeta *TableMeta::field(const char *name) const {
   if (nullptr == name) {
     return nullptr;
   }
@@ -124,7 +124,7 @@ const FieldMeta * TableMeta::field(const char *name) const {
   return nullptr;
 }
 
-const FieldMeta * TableMeta::find_field_by_offset(int offset) const {
+const FieldMeta *TableMeta::find_field_by_offset(int offset) const {
   for (const FieldMeta &field : fields_) {
     if (field.offset() == offset) {
       return &field;
@@ -140,7 +140,7 @@ int TableMeta::sys_field_num() const {
   return sys_fields_.size();
 }
 
-const IndexMeta * TableMeta::index(const char *name) const {
+const IndexMeta *TableMeta::index(const char *name) const {
   for (const IndexMeta &index : indexes_) {
     if (0 == strcmp(index.name(), name)) {
       return &index;
@@ -149,7 +149,7 @@ const IndexMeta * TableMeta::index(const char *name) const {
   return nullptr;
 }
 
-const IndexMeta * TableMeta::find_index_by_field(const char *field) const {
+const IndexMeta *TableMeta::find_index_by_field(const char *field) const {
   for (const IndexMeta &index : indexes_) {
     if (0 == strcmp(index.field(), field)) {
       return &index;
@@ -158,7 +158,7 @@ const IndexMeta * TableMeta::find_index_by_field(const char *field) const {
   return nullptr;
 }
 
-const IndexMeta * TableMeta::index(int i ) const {
+const IndexMeta *TableMeta::index(int i) const {
   return &indexes_[i];
 }
 
@@ -176,7 +176,7 @@ int TableMeta::serialize(std::ostream &ss) const {
   table_value[FIELD_TABLE_NAME] = name_;
 
   Json::Value fields_value;
-  for (const FieldMeta & field : fields_) {
+  for (const FieldMeta &field : fields_) {
     Json::Value field_value;
     field.to_json(field_value);
     fields_value.append(std::move(field_value));
@@ -197,7 +197,7 @@ int TableMeta::serialize(std::ostream &ss) const {
 
   std::streampos old_pos = ss.tellp();
   writer->write(table_value, &ss);
-  int ret = (int)(ss.tellp() - old_pos);
+  int ret = (int) (ss.tellp() - old_pos);
 
   delete writer;
   return ret;
@@ -246,8 +246,8 @@ int TableMeta::deserialize(std::istream &is) {
     }
   }
 
-  std::sort(fields.begin(), fields.end(), 
-      [](const FieldMeta &f1, const FieldMeta &f2){return f1.offset() < f2.offset();});
+  std::sort(fields.begin(), fields.end(),
+            [](const FieldMeta &f1, const FieldMeta &f2) { return f1.offset() < f2.offset(); });
 
   name_.swap(table_name);
   fields_.swap(fields);
@@ -274,7 +274,7 @@ int TableMeta::deserialize(std::istream &is) {
     indexes_.swap(indexes);
   }
 
-  return (int)(is.tellg() - old_pos);
+  return (int) (is.tellg() - old_pos);
 }
 
 int TableMeta::get_serial_size() const {

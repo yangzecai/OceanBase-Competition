@@ -22,7 +22,7 @@ See the Mulan PSL v2 for more details. */
 class Trx;
 
 class DefaultHandler {
-public:
+ public:
   DefaultHandler();
 
   virtual ~DefaultHandler() noexcept;
@@ -102,7 +102,11 @@ public:
    * @param attrName
    * @return
    */
-  RC create_index(Trx *trx, const char *dbname, const char *relation_name, const char *index_name, const char *attribute_name);
+  RC create_index(Trx *trx,
+                  const char *dbname,
+                  const char *relation_name,
+                  const char *index_name,
+                  const char *attribute_name);
 
   /**
    * 该函数用来删除名为indexName的索引。
@@ -122,7 +126,7 @@ public:
    * @param values
    * @return
    */
-  RC insert_record(Trx * trx, const char *dbname, const char *relation_name, int value_num, const Value *values);
+  RC insert_record(Trx *trx, const char *dbname, const char *relation_name, int value_num, const Value *values);
 
   /**
    * 该函数用来删除relName表中所有满足指定条件的元组以及该元组对应的索引项。
@@ -134,7 +138,7 @@ public:
    * @return
    */
   RC delete_record(Trx *trx, const char *dbname, const char *relation_name,
-                           int condition_num, const Condition *conditions, int *deleted_count);
+                   int condition_num, const Condition *conditions, int *deleted_count);
 
   /**
    * 该函数用于更新relName表中所有满足指定条件的元组，
@@ -148,21 +152,27 @@ public:
    * @param conditions
    * @return
    */
-  RC update_record(Trx * trx, const char *dbname, const char *relation_name, const char *attribute_name, const Value *value,
-                            int condition_num, const Condition *conditions, int *updated_count);
+  RC update_record(Trx *trx,
+                   const char *dbname,
+                   const char *relation_name,
+                   const char *attribute_name,
+                   const Value *value,
+                   int condition_num,
+                   const Condition *conditions,
+                   int *updated_count);
 
-public:
+ public:
   Db *find_db(const char *dbname) const;
-  Table *find_table(const char * dbname, const char *table_name) const;
+  Table *find_table(const char *dbname, const char *table_name) const;
 
   RC sync();
 
-public:
+ public:
   static DefaultHandler &get_default();
-private:
+ private:
   std::string base_dir_;
   std::string db_dir_;
-  std::map<std::string, Db*>          opened_dbs_;
+  std::map<std::string, Db *> opened_dbs_;
 }; // class Handler
 
 #endif // __OBSERVER_STORAGE_DEFAULT_ENGINE_H__

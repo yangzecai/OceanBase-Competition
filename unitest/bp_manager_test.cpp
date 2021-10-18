@@ -18,7 +18,7 @@ See the Mulan PSL v2 for more details. */
 TEST(test_bp_manager, test_bp_manager_simple_lru) {
   BPManager bp_manager(2);
 
-  Frame * frame1 = bp_manager.alloc();
+  Frame *frame1 = bp_manager.alloc();
   ASSERT_NE(frame1, nullptr);
 
   frame1->file_desc = 0;

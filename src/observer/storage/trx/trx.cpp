@@ -86,7 +86,7 @@ RC Trx::delete_record(Table *table, Record *record) {
 
 void Trx::set_record_trx_id(Table *table, Record &record, int32_t trx_id, bool deleted) const {
   const FieldMeta *trx_field = table->table_meta().trx_field();
-  int32_t *ptrx_id = (int32_t*)(record.data + trx_field->offset());
+  int32_t *ptrx_id = (int32_t *) (record.data + trx_field->offset());
   if (deleted) {
     trx_id |= DELETED_FLAG_BIT_MASK;
   }
@@ -95,7 +95,7 @@ void Trx::set_record_trx_id(Table *table, Record &record, int32_t trx_id, bool d
 
 void Trx::get_record_trx_id(Table *table, const Record &record, int32_t &trx_id, bool &deleted) {
   const FieldMeta *trx_field = table->table_meta().trx_field();
-  int32_t trx = *(int32_t*)(record.data + trx_field->offset());
+  int32_t trx = *(int32_t *) (record.data + trx_field->offset());
   trx_id = trx & TRX_ID_BIT_MASK;
   deleted = (trx & DELETED_FLAG_BIT_MASK) != 0;
 }
@@ -106,7 +106,7 @@ Operation *Trx::find_operation(Table *table, const RID &rid) {
     return nullptr;
   }
 
-  OperationSet & table_operations = table_operations_iter->second;
+  OperationSet &table_operations = table_operations_iter->second;
   Operation tmp(Operation::Type::UNDEFINED, rid);
   OperationSet::iterator operation_iter = table_operations.find(tmp);
   if (operation_iter == table_operations.end()) {
@@ -116,7 +116,7 @@ Operation *Trx::find_operation(Table *table, const RID &rid) {
 }
 
 void Trx::insert_operation(Table *table, Operation::Type type, const RID &rid) {
-  OperationSet & table_operations = operations_[table];
+  OperationSet &table_operations = operations_[table];
   table_operations.emplace(type, rid);
 }
 
@@ -124,7 +124,7 @@ void Trx::delete_operation(Table *table, const RID &rid) {
 
   std::unordered_map<Table *, OperationSet>::iterator table_operations_iter = operations_.find(table);
   if (table_operations_iter == operations_.end()) {
-    return ;
+    return;
   }
 
   Operation tmp(Operation::Type::UNDEFINED, rid);
@@ -151,7 +151,7 @@ RC Trx::commit() {
                       rid.page_num, rid.slot_num, rc, strrc(rc));
           }
         }
-        break;
+          break;
         case Operation::Type::DELETE: {
           rc = table->commit_delete(this, rid);
           if (rc != RC::SUCCESS) {
@@ -160,11 +160,11 @@ RC Trx::commit() {
                       rid.page_num, rid.slot_num, rc, strrc(rc));
           }
         }
-        break;
+          break;
         default: {
-          LOG_PANIC("Unknown operation. type=%d", (int)operation.type());
+          LOG_PANIC("Unknown operation. type=%d", (int) operation.type());
         }
-        break;
+          break;
       }
     }
   }
@@ -205,7 +205,7 @@ RC Trx::rollback() {
         }
           break;
         default: {
-          LOG_PANIC("Unknown operation. type=%d", (int)operation.type());
+          LOG_PANIC("Unknown operation. type=%d", (int) operation.type());
         }
           break;
       }

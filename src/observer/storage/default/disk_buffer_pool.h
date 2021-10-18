@@ -60,13 +60,13 @@ typedef struct {
   Frame *frame;
 } BPPageHandle;
 
-class BPFileHandle{
-public:
+class BPFileHandle {
+ public:
   BPFileHandle() {
     memset(this, 0, sizeof(*this));
   }
 
-public:
+ public:
   bool bopen;
   const char *file_name;
   int file_desc;
@@ -74,10 +74,10 @@ public:
   Page *hdr_page;
   char *bitmap;
   BPFileSubHeader *file_sub_header;
-} ;
+};
 
 class BPManager {
-public:
+ public:
   BPManager(int size = BP_BUFFER_SIZE) {
     this->size = size;
     frame = new Frame[size];
@@ -108,14 +108,14 @@ public:
 
   bool *getAllocated() { return allocated; }
 
-public:
+ public:
   int size;
-  Frame * frame = nullptr;
+  Frame *frame = nullptr;
   bool *allocated = nullptr;
 };
 
 class DiskBufferPool {
-public:
+ public:
   /**
   * 创建一个名称为指定文件名的分页文件
   */
@@ -188,7 +188,7 @@ public:
 
   RC flush_all_pages(int file_id);
 
-protected:
+ protected:
   RC allocate_block(Frame **buf);
   RC dispose_block(Frame *buf);
 
@@ -204,7 +204,7 @@ protected:
   RC load_page(PageNum page_num, BPFileHandle *file_handle, Frame *frame);
   RC flush_block(Frame *frame);
 
-private:
+ private:
   BPManager bp_manager_;
   BPFileHandle *open_list_[MAX_OPEN_FILE] = {nullptr};
 };

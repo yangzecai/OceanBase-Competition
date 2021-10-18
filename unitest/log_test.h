@@ -21,7 +21,7 @@ See the Mulan PSL v2 for more details. */
  *
  */
 class LogTest {
-public:
+ public:
   LogTest();
   virtual ~LogTest();
 

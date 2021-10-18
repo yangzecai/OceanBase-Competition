@@ -24,7 +24,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/common/record_manager.h"
 
 class IndexDataOperator {
-public:
+ public:
   virtual ~IndexDataOperator() = default;
   virtual int compare(const void *data1, const void *data2) const = 0;
   virtual size_t hash(const void *data) const = 0;
@@ -34,7 +34,7 @@ class IndexScanner;
 
 class Index {
 
-public:
+ public:
   Index() = default;
   virtual ~Index() = default;
 
@@ -49,16 +49,16 @@ public:
 
   virtual RC sync() = 0;
 
-protected:
+ protected:
   RC init(const IndexMeta &index_meta, const FieldMeta &field_meta);
 
-protected:
-  IndexMeta   index_meta_;
-  FieldMeta   field_meta_;    /// 当前实现仅考虑一个字段的索引
+ protected:
+  IndexMeta index_meta_;
+  FieldMeta field_meta_;    /// 当前实现仅考虑一个字段的索引
 };
 
 class IndexScanner {
-public:
+ public:
   IndexScanner() = default;
   virtual ~IndexScanner() = default;
 

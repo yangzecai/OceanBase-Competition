@@ -33,7 +33,7 @@ OptimizeStage::~OptimizeStage() {}
 
 //! Parse properties, instantiate a stage object
 Stage *OptimizeStage::make_stage(const std::string &tag) {
-  OptimizeStage *stage = new (std::nothrow) OptimizeStage(tag.c_str());
+  OptimizeStage *stage = new(std::nothrow) OptimizeStage(tag.c_str());
   if (stage == nullptr) {
     LOG_ERROR("new OptimizeStage failed");
     return nullptr;

@@ -69,8 +69,8 @@ enum RCSchema {
   INDEX_NAME_ILLEGAL,
 };
 
-enum RCSQL { 
-  SQL_SELECT = 1 
+enum RCSQL {
+  SQL_SELECT = 1
 };
 
 enum RCIOError {
@@ -129,10 +129,10 @@ enum RCCantOpen {
   SYMLINK,
 };
 
-enum RCCorrupt { 
-  CORRUPT_VIRT = 1, 
-  CORRUPT_SEQUENCE, 
-  CORRUPT_INDEX 
+enum RCCorrupt {
+  CORRUPT_VIRT = 1,
+  CORRUPT_SEQUENCE,
+  CORRUPT_INDEX
 };
 
 enum RCReadonly {
@@ -242,7 +242,7 @@ enum RC {
   /* schema part */
   SCHEMA_DB_EXIST = (SCHEMA | (RCSchema::DB_EXIST << 8)),
   SCHEMA_DB_NOT_EXIST = (SCHEMA | (RCSchema::DB_NOT_EXIST << 8)),
-  SCHEMA_DB_NOT_OPENED = (SCHEMA | (RCSchema::DB_NOT_OPENED<< 8)),
+  SCHEMA_DB_NOT_OPENED = (SCHEMA | (RCSchema::DB_NOT_OPENED << 8)),
   SCHEMA_TABLE_NOT_EXIST = (SCHEMA | (RCSchema::TABLE_NOT_EXIST << 8)),
   SCHEMA_TABLE_EXIST = (SCHEMA | (RCSchema::TABLE_EXIST << 8)),
   SCHEMA_TABLE_NAME_ILLEGAL = (SCHEMA | (RCSchema::TABLE_NAME_ILLEGAL << 8)),

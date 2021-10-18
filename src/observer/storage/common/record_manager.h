@@ -20,33 +20,31 @@ typedef int SlotNum;
 struct PageHeader;
 class ConditionFilter;
 
-struct RID 
-{
+struct RID {
   PageNum page_num; // record's page number
   SlotNum slot_num; // record's slot number
   // bool    valid;    // true means a valid record
 
-  bool operator== (const RID &other) const {
+  bool operator==(const RID &other) const {
     return page_num == other.page_num && slot_num == other.slot_num;
   }
 };
 
 class RidDigest {
-public:
-  size_t operator() (const RID &rid) const {
-    return ((size_t)(rid.page_num) << 32) | rid.slot_num;
+ public:
+  size_t operator()(const RID &rid) const {
+    return ((size_t) (rid.page_num) << 32) | rid.slot_num;
   }
 };
 
-struct Record 
-{
+struct Record {
   // bool valid; // false means the record hasn't been load
-  RID  rid;   // record's rid
+  RID rid;   // record's rid
   char *data; // record's data
 };
 
 class RecordPageHandler {
-public:
+ public:
   RecordPageHandler();
   ~RecordPageHandler();
   RC init(DiskBufferPool &buffer_pool, int file_id, PageNum page_num);
@@ -56,7 +54,7 @@ public:
   RC insert_record(const char *data, RID *rid);
   RC update_record(const Record *rec);
 
-  template <class RecordUpdater>
+  template<class RecordUpdater>
   RC update_record_in_place(const RID *rid, RecordUpdater updater) {
     Record record;
     RC rc = get_record(rid, &record);
@@ -78,16 +76,16 @@ public:
 
   bool is_full() const;
 
-private:
-  DiskBufferPool * disk_buffer_pool_;
-  int              file_id_;
-  BPPageHandle     page_handle_;
-  PageHeader    *  page_header_;
-  char *           bitmap_;
+ private:
+  DiskBufferPool *disk_buffer_pool_;
+  int file_id_;
+  BPPageHandle page_handle_;
+  PageHeader *page_header_;
+  char *bitmap_;
 };
 
 class RecordFileHandler {
-public:
+ public:
   RecordFileHandler();
   RC init(DiskBufferPool &buffer_pool, int file_id);
   void close();
@@ -123,7 +121,8 @@ public:
    */
   RC get_record(const RID *rid, Record *rec);
 
-  template<class RecordUpdater> // 改成普通模式, 不使用模板
+  template<class RecordUpdater>
+  // 改成普通模式, 不使用模板
   RC update_record_in_place(const RID *rid, RecordUpdater updater) {
 
     RC rc = RC::SUCCESS;
@@ -135,16 +134,15 @@ public:
     return page_handler.update_record_in_place(rid, updater);
   }
 
-private:
-  DiskBufferPool  *   disk_buffer_pool_;
-  int                 file_id_;                    // 参考DiskBufferPool中的fileId
+ private:
+  DiskBufferPool *disk_buffer_pool_;
+  int file_id_;                    // 参考DiskBufferPool中的fileId
 
-  RecordPageHandler   record_page_handler_;        // 目前只有insert record使用
+  RecordPageHandler record_page_handler_;        // 目前只有insert record使用
 };
 
-class RecordFileScanner 
-{
-public:
+class RecordFileScanner {
+ public:
   RecordFileScanner();
 
   /**
@@ -160,7 +158,7 @@ public:
    * @param conditions
    * @return
    */
-  RC open_scan(DiskBufferPool & buffer_pool, int file_id, ConditionFilter *condition_filter);
+  RC open_scan(DiskBufferPool &buffer_pool, int file_id, ConditionFilter *condition_filter);
 
   /**
    * 关闭一个文件扫描，释放相应的资源
@@ -179,14 +177,12 @@ public:
    */
   RC get_next_record(Record *rec);
 
-private:
-  DiskBufferPool  *   disk_buffer_pool_;
-  int                 file_id_;                    // 参考DiskBufferPool中的fileId
+ private:
+  DiskBufferPool *disk_buffer_pool_;
+  int file_id_;                    // 参考DiskBufferPool中的fileId
 
-  ConditionFilter *   condition_filter_;
-  RecordPageHandler   record_page_handler_;
+  ConditionFilter *condition_filter_;
+  RecordPageHandler record_page_handler_;
 };
-
-
 
 #endif //__OBSERVER_STORAGE_COMMON_RECORD_MANAGER_H_

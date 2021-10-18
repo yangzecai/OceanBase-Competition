@@ -33,11 +33,10 @@ See the Mulan PSL v2 for more details. */
 #define PORT_DEFAULT 66789
 
 using namespace common;
-char *server_host = (char *)LOCAL_HOST;
+char *server_host = (char *) LOCAL_HOST;
 
-void *test_server(void *param)
-{
-  Meter *tps_meter = (Meter *)param;
+void *test_server(void *param) {
+  Meter *tps_meter = (Meter *) param;
 
   std::cout << "Begin to connect server. " << std::endl;
   int sockfd, sendbytes;
@@ -60,11 +59,11 @@ void *test_server(void *param)
   }
 
   serv_addr.sin_family = AF_INET;
-  serv_addr.sin_port = htons((uint16_t)PORT_DEFAULT);
-  serv_addr.sin_addr = *((struct in_addr *)host->h_addr);
+  serv_addr.sin_port = htons((uint16_t) PORT_DEFAULT);
+  serv_addr.sin_addr = *((struct in_addr *) host->h_addr);
   bzero(&(serv_addr.sin_zero), 8);
 
-  if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr)) == -1) {
+  if (connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr)) == -1) {
     perror("Failed to connect \n");
     exit(1);
   }
@@ -93,8 +92,7 @@ void *test_server(void *param)
   return NULL;
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 
   if (argc >= 2) {
     server_host = argv[1];

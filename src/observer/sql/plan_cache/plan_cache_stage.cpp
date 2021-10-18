@@ -33,7 +33,7 @@ PlanCacheStage::~PlanCacheStage() {}
 
 //! Parse properties, instantiate a stage object
 Stage *PlanCacheStage::make_stage(const std::string &tag) {
-  PlanCacheStage *stage = new (std::nothrow) PlanCacheStage(tag.c_str());
+  PlanCacheStage *stage = new(std::nothrow) PlanCacheStage(tag.c_str());
   if (stage == nullptr) {
     LOG_ERROR("new PlanCacheStage failed");
     return nullptr;
@@ -96,7 +96,7 @@ void PlanCacheStage::handle_event(StageEvent *event) {
 }
 
 void PlanCacheStage::callback_event(StageEvent *event,
-                                   CallbackContext *context) {
+                                    CallbackContext *context) {
   LOG_TRACE("Enter\n");
 
   // update execute plan here

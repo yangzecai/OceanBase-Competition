@@ -21,7 +21,7 @@ See the Mulan PSL v2 for more details. */
 class SessionEvent;
 
 class SQLStageEvent : public common::StageEvent {
-public:
+ public:
   SQLStageEvent(SessionEvent *event, std::string &sql);
   virtual ~SQLStageEvent() noexcept;
 
@@ -29,12 +29,12 @@ public:
     return sql_;
   }
 
-  SessionEvent * session_event() const {
+  SessionEvent *session_event() const {
     return session_event_;
   }
-private:
+ private:
   SessionEvent *session_event_;
-  std::string & sql_;
+  std::string &sql_;
   // void *context_;
 };
 

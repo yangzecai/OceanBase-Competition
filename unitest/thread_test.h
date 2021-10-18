@@ -21,7 +21,7 @@ See the Mulan PSL v2 for more details. */
  *
  */
 class ThreadTest {
-public:
+ public:
   ThreadTest();
   virtual ~ThreadTest();
 
@@ -33,7 +33,7 @@ public:
   static void *testCond(void *param);
   static void *testDeadLock(void *param);
 
-private:
+ private:
   int param[10];
 
   pthread_mutex_t mutex;

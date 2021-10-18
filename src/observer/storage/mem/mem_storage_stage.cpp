@@ -34,7 +34,7 @@ MemStorageStage::~MemStorageStage() {}
 
 //! Parse properties, instantiate a stage object
 Stage *MemStorageStage::make_stage(const std::string &tag) {
-  MemStorageStage *stage = new (std::nothrow) MemStorageStage(tag.c_str());
+  MemStorageStage *stage = new(std::nothrow) MemStorageStage(tag.c_str());
   if (stage == nullptr) {
     LOG_ERROR("new MemStorageStage failed");
     return nullptr;
@@ -82,7 +82,7 @@ void MemStorageStage::handle_event(StageEvent *event) {
 }
 
 void MemStorageStage::callback_event(StageEvent *event,
-                                    CallbackContext *context) {
+                                     CallbackContext *context) {
   LOG_TRACE("Enter\n");
 
   LOG_TRACE("Exit\n");

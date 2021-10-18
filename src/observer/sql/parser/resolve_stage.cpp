@@ -34,7 +34,7 @@ ResolveStage::~ResolveStage() {}
 
 //! Parse properties, instantiate a stage object
 Stage *ResolveStage::make_stage(const std::string &tag) {
-  ResolveStage *stage = new (std::nothrow) ResolveStage(tag.c_str());
+  ResolveStage *stage = new(std::nothrow) ResolveStage(tag.c_str());
   if (stage == nullptr) {
     LOG_ERROR("new ResolveStage failed");
     return nullptr;

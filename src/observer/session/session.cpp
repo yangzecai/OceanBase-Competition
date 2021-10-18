@@ -20,7 +20,7 @@ Session &Session::default_session() {
   return session;
 }
 
-Session::Session(const Session &other) : current_db_(other.current_db_){
+Session::Session(const Session &other) : current_db_(other.current_db_) {
 }
 
 Session::~Session() {

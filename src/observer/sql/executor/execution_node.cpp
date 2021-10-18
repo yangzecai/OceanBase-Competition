@@ -20,14 +20,17 @@ SelectExeNode::SelectExeNode() : table_(nullptr) {
 }
 
 SelectExeNode::~SelectExeNode() {
-  for (DefaultConditionFilter * &filter : condition_filters_) {
+  for (DefaultConditionFilter *&filter : condition_filters_) {
     delete filter;
   }
   condition_filters_.clear();
 }
 
 RC
-SelectExeNode::init(Trx *trx, Table *table, TupleSchema &&tuple_schema, std::vector<DefaultConditionFilter *> &&condition_filters) {
+SelectExeNode::init(Trx *trx,
+                    Table *table,
+                    TupleSchema &&tuple_schema,
+                    std::vector<DefaultConditionFilter *> &&condition_filters) {
   trx_ = trx;
   table_ = table;
   tuple_schema_ = tuple_schema;
@@ -36,15 +39,15 @@ SelectExeNode::init(Trx *trx, Table *table, TupleSchema &&tuple_schema, std::vec
 }
 
 void record_reader(const char *data, void *context) {
-  TupleRecordConverter *converter = (TupleRecordConverter *)context;
+  TupleRecordConverter *converter = (TupleRecordConverter *) context;
   converter->add_record(data);
 }
 RC SelectExeNode::execute(TupleSet &tuple_set) {
   CompositeConditionFilter condition_filter;
-  condition_filter.init((const ConditionFilter **)condition_filters_.data(), condition_filters_.size());
+  condition_filter.init((const ConditionFilter **) condition_filters_.data(), condition_filters_.size());
 
   tuple_set.clear();
   tuple_set.set_schema(tuple_schema_);
   TupleRecordConverter converter(table_, tuple_set);
-  return table_->scan_record(trx_, &condition_filter, -1, (void *)&converter, record_reader);
+  return table_->scan_record(trx_, &condition_filter, -1, (void *) &converter, record_reader);
 }

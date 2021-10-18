@@ -18,11 +18,11 @@ See the Mulan PSL v2 for more details. */
 #include "common/seda/stage.h"
 
 class ParseStage : public common::Stage {
-public:
+ public:
   ~ParseStage();
   static Stage *make_stage(const std::string &tag);
 
-protected:
+ protected:
   // common function
   ParseStage(const char *tag);
   bool set_properties();
@@ -31,11 +31,11 @@ protected:
   void cleanup();
   void handle_event(common::StageEvent *event);
   void callback_event(common::StageEvent *event,
-                     common::CallbackContext *context);
+                      common::CallbackContext *context);
 
-protected:
+ protected:
   common::StageEvent *handle_request(common::StageEvent *event);
-private:
+ private:
   Stage *optimize_stage_ = nullptr;
 };
 

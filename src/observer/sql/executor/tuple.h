@@ -24,15 +24,15 @@ See the Mulan PSL v2 for more details. */
 class Table;
 
 class Tuple {
-public:
+ public:
   Tuple() = default;
 
   Tuple(const Tuple &other);
 
   ~Tuple();
 
-  Tuple(Tuple &&other) noexcept ;
-  Tuple & operator=(Tuple &&other) noexcept ;
+  Tuple(Tuple &&other) noexcept;
+  Tuple &operator=(Tuple &&other) noexcept;
 
   void add(TupleValue *value);
   void add(const std::shared_ptr<TupleValue> &other);
@@ -56,17 +56,17 @@ public:
     return values_[index];
   }
 
-private:
-  std::vector<std::shared_ptr<TupleValue>>  values_;
+ private:
+  std::vector<std::shared_ptr<TupleValue>> values_;
 };
 
 class TupleField {
-public:
+ public:
   TupleField(AttrType type, const char *table_name, const char *field_name) :
-          type_(type), table_name_(table_name), field_name_(field_name){
+      type_(type), table_name_(table_name), field_name_(field_name) {
   }
 
-  AttrType  type() const{
+  AttrType type() const {
     return type_;
   }
 
@@ -78,14 +78,14 @@ public:
   }
 
   std::string to_string() const;
-private:
-  AttrType  type_;
+ private:
+  AttrType type_;
   std::string table_name_;
   std::string field_name_;
 };
 
 class TupleSchema {
-public:
+ public:
   TupleSchema() = default;
   ~TupleSchema() = default;
 
@@ -108,19 +108,19 @@ public:
   }
 
   void print(std::ostream &os) const;
-public:
+ public:
   static void from_table(const Table *table, TupleSchema &schema);
-private:
+ private:
   std::vector<TupleField> fields_;
 };
 
 class TupleSet {
-public:
+ public:
   TupleSet() = default;
   TupleSet(TupleSet &&other);
   explicit TupleSet(const TupleSchema &schema) : schema_(schema) {
   }
-  TupleSet &operator =(TupleSet &&other);
+  TupleSet &operator=(TupleSet &&other);
 
   ~TupleSet() = default;
 
@@ -128,7 +128,7 @@ public:
 
   const TupleSchema &get_schema() const;
 
-  void add(Tuple && tuple);
+  void add(Tuple &&tuple);
 
   void clear();
 
@@ -138,21 +138,21 @@ public:
   const std::vector<Tuple> &tuples() const;
 
   void print(std::ostream &os) const;
-public:
+ public:
   const TupleSchema &schema() const {
     return schema_;
   }
-private:
+ private:
   std::vector<Tuple> tuples_;
   TupleSchema schema_;
 };
 
 class TupleRecordConverter {
-public:
+ public:
   TupleRecordConverter(Table *table, TupleSet &tuple_set);
 
   void add_record(const char *record);
-private:
+ private:
   Table *table_;
   TupleSet &tuple_set_;
 };

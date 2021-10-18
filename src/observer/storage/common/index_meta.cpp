@@ -71,5 +71,5 @@ const char *IndexMeta::field() const {
 
 void IndexMeta::desc(std::ostream &os) const {
   os << "index name=" << name_
-      << ", field=" << field_;
+     << ", field=" << field_;
 }

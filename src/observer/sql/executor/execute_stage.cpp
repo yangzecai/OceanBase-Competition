@@ -35,7 +35,11 @@ See the Mulan PSL v2 for more details. */
 
 using namespace common;
 
-RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, const char *table_name, SelectExeNode &select_node);
+RC create_selection_executor(Trx *trx,
+                             const Selects &selects,
+                             const char *db,
+                             const char *table_name,
+                             SelectExeNode &select_node);
 
 //! Constructor
 ExecuteStage::ExecuteStage(const char *tag) : Stage(tag) {}
@@ -45,7 +49,7 @@ ExecuteStage::~ExecuteStage() {}
 
 //! Parse properties, instantiate a stage object
 Stage *ExecuteStage::make_stage(const std::string &tag) {
-  ExecuteStage *stage = new (std::nothrow) ExecuteStage(tag.c_str());
+  ExecuteStage *stage = new(std::nothrow) ExecuteStage(tag.c_str());
   if (stage == nullptr) {
     LOG_ERROR("new ExecuteStage failed");
     return nullptr;
@@ -113,7 +117,7 @@ void ExecuteStage::handle_request(common::StageEvent *event) {
   Query *sql = exe_event->sqls();
   const char *current_db = session_event->get_client()->session->get_current_db().c_str();
 
-  CompletionCallback *cb = new (std::nothrow) CompletionCallback(this, nullptr);
+  CompletionCallback *cb = new(std::nothrow) CompletionCallback(this, nullptr);
   if (cb == nullptr) {
     LOG_ERROR("Failed to new callback for ExecutionPlanEvent");
     exe_event->done_immediate();
@@ -126,7 +130,7 @@ void ExecuteStage::handle_request(common::StageEvent *event) {
       do_select(current_db, sql, exe_event->sql_event()->session_event());
       exe_event->done_immediate();
     }
-    break;
+      break;
 
     case SCF_INSERT:
     case SCF_UPDATE:
@@ -136,9 +140,9 @@ void ExecuteStage::handle_request(common::StageEvent *event) {
     case SCF_DESC_TABLE:
     case SCF_DROP_TABLE:
     case SCF_CREATE_INDEX:
-    case SCF_DROP_INDEX: 
+    case SCF_DROP_INDEX:
     case SCF_LOAD_DATA: {
-      StorageEvent *storage_event = new (std::nothrow) StorageEvent(exe_event);
+      StorageEvent *storage_event = new(std::nothrow) StorageEvent(exe_event);
       if (storage_event == nullptr) {
         LOG_ERROR("Failed to new StorageEvent");
         event->done_immediate();
@@ -147,19 +151,19 @@ void ExecuteStage::handle_request(common::StageEvent *event) {
 
       default_storage_stage_->handle_event(storage_event);
     }
-    break;
+      break;
     case SCF_SYNC: {
       RC rc = DefaultHandler::get_default().sync();
       session_event->set_response(strrc(rc));
       exe_event->done_immediate();
     }
-    break;
+      break;
     case SCF_BEGIN: {
       session_event->get_client()->session->set_trx_multi_operation_mode(true);
       session_event->set_response(strrc(RC::SUCCESS));
       exe_event->done_immediate();
     }
-    break;
+      break;
     case SCF_COMMIT: {
       Trx *trx = session_event->get_client()->session->current_trx();
       RC rc = trx->commit();
@@ -167,7 +171,7 @@ void ExecuteStage::handle_request(common::StageEvent *event) {
       session_event->set_response(strrc(rc));
       exe_event->done_immediate();
     }
-    break;
+      break;
     case SCF_ROLLBACK: {
       Trx *trx = session_event->get_client()->session->current_trx();
       RC rc = trx->rollback();
@@ -175,27 +179,27 @@ void ExecuteStage::handle_request(common::StageEvent *event) {
       session_event->set_response(strrc(rc));
       exe_event->done_immediate();
     }
-    break;
+      break;
     case SCF_HELP: {
       const char *response = "show tables;\n"
-          "desc `table name`;\n"
-          "create table `table name` (`column name` `column type`, ...);\n"
-          "create index `index name` on `table` (`column`);\n"
-          "insert into `table` values(`value1`,`value2`);\n"
-          "update `table` set column=value [where `column`=`value`];\n"
-          "delete from `table` [where `column`=`value`];\n"
-          "select [ * | `columns` ] from `table`;\n";
+                             "desc `table name`;\n"
+                             "create table `table name` (`column name` `column type`, ...);\n"
+                             "create index `index name` on `table` (`column`);\n"
+                             "insert into `table` values(`value1`,`value2`);\n"
+                             "update `table` set column=value [where `column`=`value`];\n"
+                             "delete from `table` [where `column`=`value`];\n"
+                             "select [ * | `columns` ] from `table`;\n";
       session_event->set_response(response);
       exe_event->done_immediate();
     }
-    break;
+      break;
     case SCF_EXIT: {
       // do nothing
       const char *response = "Unsupported\n";
       session_event->set_response(response);
       exe_event->done_immediate();
     }
-    break;
+      break;
     default: {
       exe_event->done_immediate();
       LOG_ERROR("Unsupported command=%d\n", sql->flag);
@@ -229,7 +233,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     rc = create_selection_executor(trx, selects, db, table_name, *select_node);
     if (rc != RC::SUCCESS) {
       delete select_node;
-      for (SelectExeNode *& tmp_node: select_nodes) {
+      for (SelectExeNode *&tmp_node: select_nodes) {
         delete tmp_node;
       }
       end_trx_if_need(session, trx, false);
@@ -249,7 +253,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     TupleSet tuple_set;
     rc = node->execute(tuple_set);
     if (rc != RC::SUCCESS) {
-      for (SelectExeNode *& tmp_node: select_nodes) {
+      for (SelectExeNode *&tmp_node: select_nodes) {
         delete tmp_node;
       }
       end_trx_if_need(session, trx, false);
@@ -267,7 +271,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     tuple_sets.front().print(ss);
   }
 
-  for (SelectExeNode *& tmp_node: select_nodes) {
+  for (SelectExeNode *&tmp_node: select_nodes) {
     delete tmp_node;
   }
   session_event->set_response(ss.str());
@@ -295,10 +299,14 @@ static RC schema_add_field(Table *table, const char *field_name, TupleSchema &sc
 }
 
 // 把所有的表和只跟这张表关联的condition都拿出来，生成最底层的select 执行节点
-RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, const char *table_name, SelectExeNode &select_node) {
+RC create_selection_executor(Trx *trx,
+                             const Selects &selects,
+                             const char *db,
+                             const char *table_name,
+                             SelectExeNode &select_node) {
   // 列出跟这张表关联的Attr
   TupleSchema schema;
-  Table * table = DefaultHandler::get_default().find_table(db, table_name);
+  Table *table = DefaultHandler::get_default().find_table(db, table_name);
   if (nullptr == table) {
     LOG_WARN("No such table [%s] in db [%s]", table_name, db);
     return RC::SCHEMA_TABLE_NOT_EXIST;
@@ -326,16 +334,19 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
   for (size_t i = 0; i < selects.condition_num; i++) {
     const Condition &condition = selects.conditions[i];
     if ((condition.left_is_attr == 0 && condition.right_is_attr == 0) || // 两边都是值
-        (condition.left_is_attr == 1 && condition.right_is_attr == 0 && match_table(selects, condition.left_attr.relation_name, table_name)) ||  // 左边是属性右边是值
-        (condition.left_is_attr == 0 && condition.right_is_attr == 1 && match_table(selects, condition.right_attr.relation_name, table_name)) ||  // 左边是值，右边是属性名
+        (condition.left_is_attr == 1 && condition.right_is_attr == 0
+            && match_table(selects, condition.left_attr.relation_name, table_name)) ||  // 左边是属性右边是值
+        (condition.left_is_attr == 0 && condition.right_is_attr == 1
+            && match_table(selects, condition.right_attr.relation_name, table_name)) ||  // 左边是值，右边是属性名
         (condition.left_is_attr == 1 && condition.right_is_attr == 1 &&
-            match_table(selects, condition.left_attr.relation_name, table_name) && match_table(selects, condition.right_attr.relation_name, table_name)) // 左右都是属性名，并且表名都符合
+            match_table(selects, condition.left_attr.relation_name, table_name)
+            && match_table(selects, condition.right_attr.relation_name, table_name)) // 左右都是属性名，并且表名都符合
         ) {
       DefaultConditionFilter *condition_filter = new DefaultConditionFilter();
       RC rc = condition_filter->init(*table, condition);
       if (rc != RC::SUCCESS) {
         delete condition_filter;
-        for (DefaultConditionFilter * &filter : condition_filters) {
+        for (DefaultConditionFilter *&filter : condition_filters) {
           delete filter;
         }
         return rc;

@@ -25,7 +25,7 @@ See the Mulan PSL v2 for more details. */
 class Table;
 
 class Db {
-public:
+ public:
   Db() = default;
   ~Db();
 
@@ -42,13 +42,13 @@ public:
   void all_tables(std::vector<std::string> &table_names) const;
 
   RC sync();
-private:
+ private:
   RC open_all_tables();
 
-private:
-  std::string   name_;
-  std::string   path_;
-  std::unordered_map<std::string, Table *>  opened_tables_;
+ private:
+  std::string name_;
+  std::string path_;
+  std::unordered_map<std::string, Table *> opened_tables_;
 };
 
 #endif // __OBSERVER_STORAGE_COMMON_DB_H__

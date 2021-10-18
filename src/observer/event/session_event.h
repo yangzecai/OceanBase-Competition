@@ -22,7 +22,7 @@ See the Mulan PSL v2 for more details. */
 #include "net/connection_context.h"
 
 class SessionEvent : public common::StageEvent {
-public:
+ public:
   SessionEvent(ConnectionContext *client);
   virtual ~SessionEvent();
 
@@ -36,7 +36,7 @@ public:
   char *get_request_buf();
   int get_request_buf_len();
 
-private:
+ private:
   ConnectionContext *client_;
 
   std::string response_;

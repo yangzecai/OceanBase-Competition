@@ -15,11 +15,9 @@ See the Mulan PSL v2 for more details. */
 
 #include "log_test.h"
 
-
 #include "gtest/gtest.h"
 
 #include "common/log/log.h"
-
 
 using namespace common;
 
@@ -32,8 +30,6 @@ LogTest::~LogTest() {
 }
 
 int LogTest::init(const std::string &logFile) {
-
-
 
   LoggerFactory::init_default(logFile);
 
@@ -63,8 +59,7 @@ void checkRotate() {
   test.log_loop(&index);
 }
 
-TEST(checkRotateTest, CheckRoateTest)
-{
+TEST(checkRotateTest, CheckRoateTest) {
 
 }
 
@@ -72,7 +67,6 @@ void testEnableTest() {
   LogTest test;
 
   test.init();
-
 
   ASSERT_EQ(g_log->check_output(LOG_LEVEL_PANIC, __FILE__), true);
   ASSERT_EQ(g_log->check_output(LOG_LEVEL_ERR, __FILE__), true);
@@ -93,8 +87,7 @@ void testEnableTest() {
   ASSERT_EQ(g_log->check_output(LOG_LEVEL_LAST, __FILE__), true);
 }
 
-TEST(testEnableTest, CheckEnableTest)
-{
+TEST(testEnableTest, CheckEnableTest) {
 
 }
 

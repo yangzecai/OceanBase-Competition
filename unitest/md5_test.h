@@ -19,7 +19,7 @@ See the Mulan PSL v2 for more details. */
  *
  */
 class Md5Test {
-public:
+ public:
   Md5Test();
   virtual ~Md5Test();
 
