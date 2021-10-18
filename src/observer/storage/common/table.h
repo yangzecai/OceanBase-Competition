@@ -43,13 +43,15 @@ public:
    */
   RC create(const char *path, const char *name, const char *base_dir, int attribute_count, const AttrInfo attributes[]);
 
+  RC drop();
+
   /**
    * 打开一个表
    * @param meta_file 保存表元数据的文件完整路径
    * @param base_dir 表所在的文件夹，表记录数据文件、索引数据文件存放位置
    */
   RC open(const char *meta_file, const char *base_dir);
-  
+
   RC insert_record(Trx *trx, int value_num, const Value *values);
   RC update_record(Trx *trx, const char *attribute_name, const Value *value, int condition_num, const Condition conditions[], int *updated_count);
   RC delete_record(Trx *trx, ConditionFilter *filter, int *deleted_count);

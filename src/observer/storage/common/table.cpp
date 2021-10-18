@@ -111,6 +111,33 @@ RC Table::create(const char *path, const char *name, const char *base_dir, int a
   return rc;
 }
 
+RC Table::drop() {
+  delete record_handler_;
+  record_handler_ = nullptr;
+
+  if (data_buffer_pool_ != nullptr && file_id_ >= 0) {
+    sync();
+    data_buffer_pool_->close_file(file_id_);
+    data_buffer_pool_ = nullptr;
+  }
+  
+  std::string table_file = table_meta_file(base_dir_.c_str(), table_meta_.name());
+  if (remove(table_file.c_str()) == -1) {
+    LOG_ERROR("Failed to remove file. file name=%s, errmsg=%s", table_file.c_str(), strerror(errno));
+    return RC::IOERR_DELETE;
+  }
+
+  std::string data_file = std::string(base_dir_) + "/" + table_meta_.name() + TABLE_DATA_SUFFIX;
+  if (remove(data_file.c_str()) == -1) {
+    LOG_ERROR("Failed to remove file. file name=%s, errmsg=%s", data_file.c_str(), strerror(errno));
+    return RC::IOERR_DELETE;
+  }
+
+  // FIXME: 删除 index 文件
+
+  return RC::SUCCESS;
+}
+
 RC Table::open(const char *meta_file, const char *base_dir) {
   // 加载元数据文件
   std::fstream fs;
