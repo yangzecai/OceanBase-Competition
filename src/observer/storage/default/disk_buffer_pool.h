@@ -1,10 +1,9 @@
-/* Copyright (c) 2021 Xie Meiyi(xiemeiyi@hust.edu.cn) and OceanBase and/or its affiliates. All rights reserved.
-miniob is licensed under Mulan PSL v2.
-You can use this software according to the terms and conditions of the Mulan PSL v2.
-You may obtain a copy of Mulan PSL v2 at:
-         http://license.coscl.org.cn/MulanPSL2
-THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+/* Copyright (c) 2021 Xie Meiyi(xiemeiyi@hust.edu.cn) and OceanBase and/or its
+affiliates. All rights reserved. miniob is licensed under Mulan PSL v2. You can
+use this software according to the terms and conditions of the Mulan PSL v2. You
+may obtain a copy of Mulan PSL v2 at: http://license.coscl.org.cn/MulanPSL2 THIS
+SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 See the Mulan PSL v2 for more details. */
 
@@ -16,10 +15,9 @@ See the Mulan PSL v2 for more details. */
 
 #include <fcntl.h>
 #include <stdio.h>
-#include <sys/types.h>
-
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <time.h>
 
 #include <vector>
@@ -62,9 +60,7 @@ typedef struct {
 
 class BPFileHandle {
  public:
-  BPFileHandle() {
-    memset(this, 0, sizeof(*this));
-  }
+  BPFileHandle() { memset(this, 0, sizeof(*this)); }
 
  public:
   bool bopen;
@@ -97,11 +93,11 @@ class BPManager {
   }
 
   Frame *alloc() {
-    return nullptr; // TODO for test
+    return nullptr;  // TODO for test
   }
 
   Frame *get(int file_desc, PageNum page_num) {
-    return nullptr; // TODO for test
+    return nullptr;  // TODO for test
   }
 
   Frame *getFrame() { return frame; }
@@ -117,8 +113,8 @@ class BPManager {
 class DiskBufferPool {
  public:
   /**
-  * 创建一个名称为指定文件名的分页文件
-  */
+   * 创建一个名称为指定文件名的分页文件
+   */
   RC create_file(const char *file_name);
 
   /**
@@ -211,4 +207,4 @@ class DiskBufferPool {
 
 DiskBufferPool *theGlobalDiskBufferPool();
 
-#endif //__OBSERVER_STORAGE_COMMON_PAGE_MANAGER_H_
+#endif  //__OBSERVER_STORAGE_COMMON_PAGE_MANAGER_H_

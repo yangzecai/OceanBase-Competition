@@ -12,7 +12,6 @@ MESSAGE(STATUS "This is BINARY dir " ${test_BINARY_DIR})
 MESSAGE(STATUS "This is Project source dir " ${PROJECT_SOURCE_DIR})
 MESSAGE(STATUS "This is PROJECT_BINARY_DIR dir " ${PROJECT_BINARY_DIR})
 
-
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 #SET(LIBRARY_OUTPUT_PATH <路径>)
 
@@ -55,7 +54,6 @@ SET(CMAKE_CXX_FLAGS ${CMAKE_COMMON_FLAGS})
 SET(CMAKE_C_FLAGS ${CMAKE_COMMON_FLAGS})
 MESSAGE("CMAKE_CXX_FLAGS is " ${CMAKE_CXX_FLAGS})
 
-
 IF (CMAKE_INSTALL_PREFIX)
   MESSAGE("CMAKE_INSTALL_PREFIX has been set as " ${CMAKE_INSTALL_PREFIX})
 ELSEIF (DEFINED ENV{CMAKE_INSTALL_PREFIX})
@@ -65,13 +63,11 @@ ELSE ()
 ENDIF ()
 MESSAGE("Install target dir is " ${CMAKE_INSTALL_PREFIX})
 
-
 # ADD_SUBDIRECTORY(src bin)  bin 为目标目录， 可以省略
 ADD_SUBDIRECTORY(deps)
 ADD_SUBDIRECTORY(src)
 ADD_SUBDIRECTORY(unitest)
 ADD_SUBDIRECTORY(test)
-
 
 # install 准备安装的目录是cmakefile 的当前目录， 不是build 后生成的目录
 # Files 默认权限OWNER_WRITE, OWNER_READ, GROUP_READ,和WORLD_READ，即644权限
@@ -94,7 +90,6 @@ INSTALL(CODE "MESSAGE(\"Sample install message.\")")
 #EXEC_PROGRAM(Executable [directory in which to run]
 #        [ARGS <arguments to executable>]
 #        [OUTPUT_VARIABLE <var>]
-
 
 # ADD_TEST与ENABLE_TESTING 参考书籍
 

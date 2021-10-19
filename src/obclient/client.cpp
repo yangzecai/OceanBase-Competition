@@ -1,10 +1,9 @@
-/* Copyright (c) 2021 Xie Meiyi(xiemeiyi@hust.edu.cn) and OceanBase and/or its affiliates. All rights reserved.
-miniob is licensed under Mulan PSL v2.
-You can use this software according to the terms and conditions of the Mulan PSL v2.
-You may obtain a copy of Mulan PSL v2 at:
-         http://license.coscl.org.cn/MulanPSL2
-THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+/* Copyright (c) 2021 Xie Meiyi(xiemeiyi@hust.edu.cn) and OceanBase and/or its
+affiliates. All rights reserved. miniob is licensed under Mulan PSL v2. You can
+use this software according to the terms and conditions of the Mulan PSL v2. You
+may obtain a copy of Mulan PSL v2 at: http://license.coscl.org.cn/MulanPSL2 THIS
+SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 See the Mulan PSL v2 for more details. */
 
@@ -23,8 +22,8 @@ See the Mulan PSL v2 for more details. */
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/un.h>
-#include <unistd.h>
 #include <termios.h>
+#include <unistd.h>
 
 #include "common/defs.h"
 #include "common/lang/string.h"
@@ -35,8 +34,7 @@ See the Mulan PSL v2 for more details. */
 using namespace common;
 
 bool is_exit_command(const char *cmd) {
-  return 0 == strncasecmp("exit", cmd, 4) ||
-      0 == strncasecmp("bye", cmd, 3);
+  return 0 == strncasecmp("exit", cmd, 4) || 0 == strncasecmp("bye", cmd, 3);
 }
 
 int init_unix_sock(const char *unix_sock_path) {
@@ -51,8 +49,9 @@ int init_unix_sock(const char *unix_sock_path) {
   sockaddr.sun_family = PF_UNIX;
   snprintf(sockaddr.sun_path, sizeof(sockaddr.sun_path), "%s", unix_sock_path);
 
-  if (connect(sockfd, (struct sockaddr *) &sockaddr, sizeof(sockaddr)) < 0) {
-    fprintf(stderr, "failed to connect to server. unix socket path '%s'. error %s",
+  if (connect(sockfd, (struct sockaddr *)&sockaddr, sizeof(sockaddr)) < 0) {
+    fprintf(stderr,
+            "failed to connect to server. unix socket path '%s'. error %s",
             sockaddr.sun_path, strerror(errno));
     close(sockfd);
     return -1;
@@ -65,24 +64,27 @@ int init_tcp_sock(const char *server_host, int server_port) {
   struct sockaddr_in serv_addr;
 
   if ((host = gethostbyname(server_host)) == NULL) {
-    fprintf(stderr, "gethostbyname failed. errmsg=%d:%s\n", errno, strerror(errno));
+    fprintf(stderr, "gethostbyname failed. errmsg=%d:%s\n", errno,
+            strerror(errno));
     return -1;
   }
 
   int sockfd;
   if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-    fprintf(stderr, "create socket error. errmsg=%d:%s\n", errno, strerror(errno));
+    fprintf(stderr, "create socket error. errmsg=%d:%s\n", errno,
+            strerror(errno));
     return -1;
   }
 
   serv_addr.sin_family = AF_INET;
   serv_addr.sin_port = htons(server_port);
-  serv_addr.sin_addr = *((struct in_addr *) host->h_addr);
+  serv_addr.sin_addr = *((struct in_addr *)host->h_addr);
   bzero(&(serv_addr.sin_zero), 8);
 
-  if (connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr)) ==
+  if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr)) ==
       -1) {
-    fprintf(stderr, "Failed to connect. errmsg=%d:%s\n", errno, strerror(errno));
+    fprintf(stderr, "Failed to connect. errmsg=%d:%s\n", errno,
+            strerror(errno));
     close(sockfd);
     return -1;
   }
@@ -114,9 +116,11 @@ int set_terminal_noncanonical() {
 }
 
 int main(int argc, char *argv[]) {
-  int ret = 0; // set_terminal_noncanonical();
+  int ret = 0;  // set_terminal_noncanonical();
   if (ret < 0) {
-    printf("Warning: failed to set terminal non canonical. Long command may be handled incorrect\n");
+    printf(
+        "Warning: failed to set terminal non canonical. Long command may be "
+        "handled incorrect\n");
   }
 
   const char *unix_socket_path = nullptr;
@@ -126,11 +130,14 @@ int main(int argc, char *argv[]) {
   extern char *optarg;
   while ((opt = getopt(argc, argv, "s:h:p:")) > 0) {
     switch (opt) {
-      case 's':unix_socket_path = optarg;
+      case 's':
+        unix_socket_path = optarg;
         break;
-      case 'p':server_port = atoi(optarg);
+      case 'p':
+        server_port = atoi(optarg);
         break;
-      case 'h':server_host = optarg;
+      case 'h':
+        server_host = optarg;
         break;
     }
   }

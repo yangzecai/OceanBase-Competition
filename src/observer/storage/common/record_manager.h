@@ -1,10 +1,9 @@
-/* Copyright (c) 2021 Xie Meiyi(xiemeiyi@hust.edu.cn) and OceanBase and/or its affiliates. All rights reserved.
-miniob is licensed under Mulan PSL v2.
-You can use this software according to the terms and conditions of the Mulan PSL v2.
-You may obtain a copy of Mulan PSL v2 at:
-         http://license.coscl.org.cn/MulanPSL2
-THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+/* Copyright (c) 2021 Xie Meiyi(xiemeiyi@hust.edu.cn) and OceanBase and/or its
+affiliates. All rights reserved. miniob is licensed under Mulan PSL v2. You can
+use this software according to the terms and conditions of the Mulan PSL v2. You
+may obtain a copy of Mulan PSL v2 at: http://license.coscl.org.cn/MulanPSL2 THIS
+SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 See the Mulan PSL v2 for more details. */
 
@@ -21,8 +20,8 @@ struct PageHeader;
 class ConditionFilter;
 
 struct RID {
-  PageNum page_num; // record's page number
-  SlotNum slot_num; // record's slot number
+  PageNum page_num;  // record's page number
+  SlotNum slot_num;  // record's slot number
   // bool    valid;    // true means a valid record
 
   bool operator==(const RID &other) const {
@@ -33,14 +32,14 @@ struct RID {
 class RidDigest {
  public:
   size_t operator()(const RID &rid) const {
-    return ((size_t) (rid.page_num) << 32) | rid.slot_num;
+    return ((size_t)(rid.page_num) << 32) | rid.slot_num;
   }
 };
 
 struct Record {
   // bool valid; // false means the record hasn't been load
-  RID rid;   // record's rid
-  char *data; // record's data
+  RID rid;     // record's rid
+  char *data;  // record's data
 };
 
 class RecordPageHandler {
@@ -48,13 +47,14 @@ class RecordPageHandler {
   RecordPageHandler();
   ~RecordPageHandler();
   RC init(DiskBufferPool &buffer_pool, int file_id, PageNum page_num);
-  RC init_empty_page(DiskBufferPool &buffer_pool, int file_id, PageNum page_num, int record_size);
+  RC init_empty_page(DiskBufferPool &buffer_pool, int file_id, PageNum page_num,
+                     int record_size);
   RC deinit();
 
   RC insert_record(const char *data, RID *rid);
   RC update_record(const Record *rec);
 
-  template<class RecordUpdater>
+  template <class RecordUpdater>
   RC update_record_in_place(const RID *rid, RecordUpdater updater) {
     Record record;
     RC rc = get_record(rid, &record);
@@ -121,13 +121,13 @@ class RecordFileHandler {
    */
   RC get_record(const RID *rid, Record *rec);
 
-  template<class RecordUpdater>
+  template <class RecordUpdater>
   // 改成普通模式, 不使用模板
   RC update_record_in_place(const RID *rid, RecordUpdater updater) {
-
     RC rc = RC::SUCCESS;
     RecordPageHandler page_handler;
-    if ((rc != page_handler.init(*disk_buffer_pool_, file_id_, rid->page_num)) != RC::SUCCESS) {
+    if ((rc != page_handler.init(*disk_buffer_pool_, file_id_,
+                                 rid->page_num)) != RC::SUCCESS) {
       return rc;
     }
 
@@ -136,9 +136,9 @@ class RecordFileHandler {
 
  private:
   DiskBufferPool *disk_buffer_pool_;
-  int file_id_;                    // 参考DiskBufferPool中的fileId
+  int file_id_;  // 参考DiskBufferPool中的fileId
 
-  RecordPageHandler record_page_handler_;        // 目前只有insert record使用
+  RecordPageHandler record_page_handler_;  // 目前只有insert record使用
 };
 
 class RecordFileScanner {
@@ -152,13 +152,14 @@ class RecordFileScanner {
    * 然后再调用GetNextRec函数来逐个返回文件中满足条件的记录。
    * 如果条件数量conNum为0，则意味着检索文件中的所有记录。
    * 如果条件不为空，则要对每条记录进行条件比较，只有满足所有条件的记录才被返回
-   * @param buffer_pool 
-   * @param file_id 
-   * @param condition_num 
+   * @param buffer_pool
+   * @param file_id
+   * @param condition_num
    * @param conditions
    * @return
    */
-  RC open_scan(DiskBufferPool &buffer_pool, int file_id, ConditionFilter *condition_filter);
+  RC open_scan(DiskBufferPool &buffer_pool, int file_id,
+               ConditionFilter *condition_filter);
 
   /**
    * 关闭一个文件扫描，释放相应的资源
@@ -179,10 +180,10 @@ class RecordFileScanner {
 
  private:
   DiskBufferPool *disk_buffer_pool_;
-  int file_id_;                    // 参考DiskBufferPool中的fileId
+  int file_id_;  // 参考DiskBufferPool中的fileId
 
   ConditionFilter *condition_filter_;
   RecordPageHandler record_page_handler_;
 };
 
-#endif //__OBSERVER_STORAGE_COMMON_RECORD_MANAGER_H_
+#endif  //__OBSERVER_STORAGE_COMMON_RECORD_MANAGER_H_

@@ -1,10 +1,9 @@
-/* Copyright (c) 2021 Xie Meiyi(xiemeiyi@hust.edu.cn) and OceanBase and/or its affiliates. All rights reserved.
-miniob is licensed under Mulan PSL v2.
-You can use this software according to the terms and conditions of the Mulan PSL v2.
-You may obtain a copy of Mulan PSL v2 at:
-         http://license.coscl.org.cn/MulanPSL2
-THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+/* Copyright (c) 2021 Xie Meiyi(xiemeiyi@hust.edu.cn) and OceanBase and/or its
+affiliates. All rights reserved. miniob is licensed under Mulan PSL v2. You can
+use this software according to the terms and conditions of the Mulan PSL v2. You
+may obtain a copy of Mulan PSL v2 at: http://license.coscl.org.cn/MulanPSL2 THIS
+SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 See the Mulan PSL v2 for more details. */
 
@@ -12,22 +11,20 @@ See the Mulan PSL v2 for more details. */
 // Created by Longda on 2021/5/3.
 //
 
-
 #include "init.h"
 
-#include "ini_setting.h"
 #include "common/conf/ini.h"
 #include "common/lang/string.h"
 #include "common/log/log.h"
+#include "common/metrics/log_reporter.h"
+#include "common/metrics/metrics_registry.h"
 #include "common/os/path.h"
 #include "common/os/pidfile.h"
 #include "common/os/process.h"
 #include "common/os/signal.h"
 #include "common/seda/init.h"
 #include "common/seda/stage_factory.h"
-
-#include "common/metrics/log_reporter.h"
-#include "common/metrics/metrics_registry.h"
+#include "ini_setting.h"
 #include "session/session_stage.h"
 #include "sql/executor/execute_stage.h"
 #include "sql/optimizer/optimize_stage.h"
@@ -93,18 +90,18 @@ int init_log(ProcessParam *process_cfg, Ini &properties) {
     key = ("LOG_FILE_LEVEL");
     it = log_section.find(key);
     if (it != log_section.end()) {
-      int log = (int) log_level;
+      int log = (int)log_level;
       str_to_val(it->second, log);
-      log_level = (LOG_LEVEL) log;
+      log_level = (LOG_LEVEL)log;
     }
 
     LOG_LEVEL console_level = LOG_LEVEL_INFO;
     key = ("LOG_CONSOLE_LEVEL");
     it = log_section.find(key);
     if (it != log_section.end()) {
-      int log = (int) console_level;
+      int log = (int)console_level;
       str_to_val(it->second, log);
-      console_level = (LOG_LEVEL) log;
+      console_level = (LOG_LEVEL)log;
     }
 
     LoggerFactory::init_default(log_file_name, log_level, console_level);
@@ -130,7 +127,6 @@ int init_log(ProcessParam *process_cfg, Ini &properties) {
 }
 
 void cleanup_log() {
-
   if (g_log) {
     delete g_log;
     g_log = nullptr;
@@ -145,12 +141,14 @@ int prepare_init_seda() {
                                             &ResolveStage::make_stage);
   static StageFactory query_cache_stage_factory("QueryCacheStage",
                                                 &QueryCacheStage::make_stage);
-  static StageFactory parse_stage_factory("ParseStage", &ParseStage::make_stage);
+  static StageFactory parse_stage_factory("ParseStage",
+                                          &ParseStage::make_stage);
   static StageFactory plan_cache_factory("PlanCacheStage",
                                          &PlanCacheStage::make_stage);
   static StageFactory optimize_factory("OptimizeStage",
                                        &OptimizeStage::make_stage);
-  static StageFactory execute_factory("ExecuteStage", &ExecuteStage::make_stage);
+  static StageFactory execute_factory("ExecuteStage",
+                                      &ExecuteStage::make_stage);
   static StageFactory default_storage_factory("DefaultStorageStage",
                                               &DefaultStorageStage::make_stage);
   static StageFactory mem_storage_factory("MemStorageStage",
@@ -159,9 +157,7 @@ int prepare_init_seda() {
 }
 
 int init(ProcessParam *process_param) {
-
   if (get_init()) {
-
     return 0;
   }
 
@@ -231,7 +227,6 @@ int init(ProcessParam *process_param) {
 }
 
 void cleanup_util() {
-
   if (nullptr != get_properties()) {
     delete get_properties();
     get_properties() = nullptr;

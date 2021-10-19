@@ -1,10 +1,9 @@
-/* Copyright (c) 2021 Xie Meiyi(xiemeiyi@hust.edu.cn) and OceanBase and/or its affiliates. All rights reserved.
-miniob is licensed under Mulan PSL v2.
-You can use this software according to the terms and conditions of the Mulan PSL v2.
-You may obtain a copy of Mulan PSL v2 at:
-         http://license.coscl.org.cn/MulanPSL2
-THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+/* Copyright (c) 2021 Xie Meiyi(xiemeiyi@hust.edu.cn) and OceanBase and/or its
+affiliates. All rights reserved. miniob is licensed under Mulan PSL v2. You can
+use this software according to the terms and conditions of the Mulan PSL v2. You
+may obtain a copy of Mulan PSL v2 at: http://license.coscl.org.cn/MulanPSL2 THIS
+SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 See the Mulan PSL v2 for more details. */
 
@@ -16,11 +15,12 @@ See the Mulan PSL v2 for more details. */
 #define __OBSERVER_STORAGE_COMMON_INDEX_H_
 
 #include <stddef.h>
+
 #include <vector>
 
 #include "rc.h"
-#include "storage/common/index_meta.h"
 #include "storage/common/field_meta.h"
+#include "storage/common/index_meta.h"
 #include "storage/common/record_manager.h"
 
 class IndexDataOperator {
@@ -33,14 +33,11 @@ class IndexDataOperator {
 class IndexScanner;
 
 class Index {
-
  public:
   Index() = default;
   virtual ~Index() = default;
 
-  const IndexMeta &index_meta() const {
-    return index_meta_;
-  }
+  const IndexMeta &index_meta() const { return index_meta_; }
 
   virtual RC insert_entry(const char *record, const RID *rid) = 0;
   virtual RC delete_entry(const char *record, const RID *rid) = 0;
@@ -54,7 +51,7 @@ class Index {
 
  protected:
   IndexMeta index_meta_;
-  FieldMeta field_meta_;    /// 当前实现仅考虑一个字段的索引
+  FieldMeta field_meta_;  /// 当前实现仅考虑一个字段的索引
 };
 
 class IndexScanner {

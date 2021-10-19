@@ -1,10 +1,9 @@
-/* Copyright (c) 2021 Xie Meiyi(xiemeiyi@hust.edu.cn) and OceanBase and/or its affiliates. All rights reserved.
-miniob is licensed under Mulan PSL v2.
-You can use this software according to the terms and conditions of the Mulan PSL v2.
-You may obtain a copy of Mulan PSL v2 at:
-         http://license.coscl.org.cn/MulanPSL2
-THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+/* Copyright (c) 2021 Xie Meiyi(xiemeiyi@hust.edu.cn) and OceanBase and/or its
+affiliates. All rights reserved. miniob is licensed under Mulan PSL v2. You can
+use this software according to the terms and conditions of the Mulan PSL v2. You
+may obtain a copy of Mulan PSL v2 at: http://license.coscl.org.cn/MulanPSL2 THIS
+SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 See the Mulan PSL v2 for more details. */
 
@@ -18,10 +17,10 @@ See the Mulan PSL v2 for more details. */
 #include <string>
 #include <vector>
 
+#include "common/lang/serializable.h"
 #include "rc.h"
 #include "storage/common/field_meta.h"
 #include "storage/common/index_meta.h"
-#include "common/lang/serializable.h"
 
 class TableMeta : public common::Serializable {
  public:
@@ -61,9 +60,10 @@ class TableMeta : public common::Serializable {
 
  private:
   static RC init_sys_fields();
+
  private:
   std::string name_;
-  std::vector<FieldMeta> fields_; // 包含sys_fields
+  std::vector<FieldMeta> fields_;  // 包含sys_fields
   std::vector<IndexMeta> indexes_;
 
   int record_size_ = 0;
@@ -71,4 +71,4 @@ class TableMeta : public common::Serializable {
   static std::vector<FieldMeta> sys_fields_;
 };
 
-#endif // __OBSERVER_STORAGE_COMMON_TABLE_META_H__
+#endif  // __OBSERVER_STORAGE_COMMON_TABLE_META_H__

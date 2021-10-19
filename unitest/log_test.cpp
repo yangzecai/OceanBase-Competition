@@ -1,10 +1,9 @@
-/* Copyright (c) 2021 Xie Meiyi(xiemeiyi@hust.edu.cn) and OceanBase and/or its affiliates. All rights reserved.
-miniob is licensed under Mulan PSL v2.
-You can use this software according to the terms and conditions of the Mulan PSL v2.
-You may obtain a copy of Mulan PSL v2 at:
-         http://license.coscl.org.cn/MulanPSL2
-THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+/* Copyright (c) 2021 Xie Meiyi(xiemeiyi@hust.edu.cn) and OceanBase and/or its
+affiliates. All rights reserved. miniob is licensed under Mulan PSL v2. You can
+use this software according to the terms and conditions of the Mulan PSL v2. You
+may obtain a copy of Mulan PSL v2 at: http://license.coscl.org.cn/MulanPSL2 THIS
+SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 See the Mulan PSL v2 for more details. */
 
@@ -12,12 +11,10 @@ See the Mulan PSL v2 for more details. */
 // Created by Longda on 2021
 //
 
-
 #include "log_test.h"
 
-#include "gtest/gtest.h"
-
 #include "common/log/log.h"
+#include "gtest/gtest.h"
 
 using namespace common;
 
@@ -30,7 +27,6 @@ LogTest::~LogTest() {
 }
 
 int LogTest::init(const std::string &logFile) {
-
   LoggerFactory::init_default(logFile);
 
   g_log->set_rotate_type(LOG_ROTATE_BYSIZE);
@@ -39,7 +35,7 @@ int LogTest::init(const std::string &logFile) {
 }
 
 void *LogTest::log_loop(void *param) {
-  int index = *(int *) param;
+  int index = *(int *)param;
   int i = 0;
   while (i < 100) {
     i++;
@@ -59,9 +55,7 @@ void checkRotate() {
   test.log_loop(&index);
 }
 
-TEST(checkRotateTest, CheckRoateTest) {
-
-}
+TEST(checkRotateTest, CheckRoateTest) {}
 
 void testEnableTest() {
   LogTest test;
@@ -87,13 +81,9 @@ void testEnableTest() {
   ASSERT_EQ(g_log->check_output(LOG_LEVEL_LAST, __FILE__), true);
 }
 
-TEST(testEnableTest, CheckEnableTest) {
-
-}
+TEST(testEnableTest, CheckEnableTest) {}
 
 int main(int argc, char **argv) {
-
-
   // 分析gtest程序的命令行参数
   testing::InitGoogleTest(&argc, argv);
 
