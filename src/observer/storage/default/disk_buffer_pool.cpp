@@ -463,13 +463,11 @@ RC DiskBufferPool::allocate_block(Frame **buffer) {
     }
   }
 
-  // 替换页策略。吧？
-  int min = 0;  // 记录上次访问时间最久远的frame的索引
-  unsigned long mintime = 0;  // 记录最久远的上次访问时间
-  bool flag = false;          // 标记存在候选帧
+  int min = 0;
+  unsigned long mintime = 0;
+  bool flag = false;
   for (int i = 0; i < BP_BUFFER_SIZE; i++) {
-    if (bp_manager_.frame[i].pin_count != 0)  // 要求没有被引用
-      continue;
+    if (bp_manager_.frame[i].pin_count != 0) continue;
     if (!flag) {
       flag = true;
       min = i;
