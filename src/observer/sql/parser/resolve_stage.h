@@ -1,10 +1,9 @@
-/* Copyright (c) 2021 Xie Meiyi(xiemeiyi@hust.edu.cn) and OceanBase and/or its affiliates. All rights reserved.
-miniob is licensed under Mulan PSL v2.
-You can use this software according to the terms and conditions of the Mulan PSL v2.
-You may obtain a copy of Mulan PSL v2 at:
-         http://license.coscl.org.cn/MulanPSL2
-THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+/* Copyright (c) 2021 Xie Meiyi(xiemeiyi@hust.edu.cn) and OceanBase and/or its
+affiliates. All rights reserved. miniob is licensed under Mulan PSL v2. You can
+use this software according to the terms and conditions of the Mulan PSL v2. You
+may obtain a copy of Mulan PSL v2 at: http://license.coscl.org.cn/MulanPSL2 THIS
+SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 See the Mulan PSL v2 for more details. */
 
@@ -18,11 +17,11 @@ See the Mulan PSL v2 for more details. */
 #include "common/seda/stage.h"
 
 class ResolveStage : public common::Stage {
-public:
+ public:
   ~ResolveStage();
   static Stage *make_stage(const std::string &tag);
 
-protected:
+ protected:
   // common function
   ResolveStage(const char *tag);
   bool set_properties();
@@ -31,11 +30,11 @@ protected:
   void cleanup();
   void handle_event(common::StageEvent *event);
   void callback_event(common::StageEvent *event,
-                     common::CallbackContext *context);
+                      common::CallbackContext *context);
 
-protected:
-private:
+ protected:
+ private:
   Stage *query_cache_stage = nullptr;
 };
 
-#endif //__OBSERVER_SQL_RESOLVE_STAGE_H__
+#endif  //__OBSERVER_SQL_RESOLVE_STAGE_H__

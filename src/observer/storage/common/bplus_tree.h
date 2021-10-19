@@ -1,10 +1,9 @@
-/* Copyright (c) 2021 Xie Meiyi(xiemeiyi@hust.edu.cn) and OceanBase and/or its affiliates. All rights reserved.
-miniob is licensed under Mulan PSL v2.
-You can use this software according to the terms and conditions of the Mulan PSL v2.
-You may obtain a copy of Mulan PSL v2 at:
-         http://license.coscl.org.cn/MulanPSL2
-THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+/* Copyright (c) 2021 Xie Meiyi(xiemeiyi@hust.edu.cn) and OceanBase and/or its
+affiliates. All rights reserved. miniob is licensed under Mulan PSL v2. You can
+use this software according to the terms and conditions of the Mulan PSL v2. You
+may obtain a copy of Mulan PSL v2 at: http://license.coscl.org.cn/MulanPSL2 THIS
+SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 See the Mulan PSL v2 for more details. */
 
@@ -15,14 +14,14 @@ See the Mulan PSL v2 for more details. */
 #define __OBSERVER_STORAGE_COMMON_INDEX_MANAGER_H_
 
 #include "record_manager.h"
-#include "storage/default/disk_buffer_pool.h"
 #include "sql/parser/parse_defs.h"
+#include "storage/default/disk_buffer_pool.h"
 
 struct IndexFileHeader {
   int attr_length;
   int key_length;
   AttrType attr_type;
-  PageNum root_page; // 初始时，root_page一定是1
+  PageNum root_page;  // 初始时，root_page一定是1
   int node_num;
   int order;
 };
@@ -51,7 +50,7 @@ struct Tree {
 };
 
 class BplusTreeHandler {
-public:
+ public:
   /**
    * 此函数创建一个名为fileName的索引。
    * attrType描述被索引属性的类型，attrLength描述被索引属性的长度
@@ -90,41 +89,49 @@ public:
   RC get_entry(const char *pkey, RID *rid);
 
   RC sync();
-public:
+
+ public:
   RC print();
   RC print_tree();
-protected:
+
+ protected:
   RC find_leaf(const char *pkey, PageNum *leaf_page);
   RC insert_into_leaf(PageNum leaf_page, const char *pkey, const RID *rid);
-  RC insert_into_leaf_after_split(PageNum leaf_page, const char *pkey, const RID *rid);
-  RC insert_into_parent(PageNum parent_page, PageNum leaf_page, const char *pkey, PageNum right_page);
-  RC insert_into_new_root(PageNum leaf_page, const char *pkey, PageNum right_page);
-  RC insert_intern_node(PageNum parent_page, PageNum leaf_page, PageNum right_page, const char *pkey);
-  RC insert_intern_node_after_split(PageNum intern_page, PageNum leaf_page, PageNum right_page, const char *pkey);
+  RC insert_into_leaf_after_split(PageNum leaf_page, const char *pkey,
+                                  const RID *rid);
+  RC insert_into_parent(PageNum parent_page, PageNum leaf_page,
+                        const char *pkey, PageNum right_page);
+  RC insert_into_new_root(PageNum leaf_page, const char *pkey,
+                          PageNum right_page);
+  RC insert_intern_node(PageNum parent_page, PageNum leaf_page,
+                        PageNum right_page, const char *pkey);
+  RC insert_intern_node_after_split(PageNum intern_page, PageNum leaf_page,
+                                    PageNum right_page, const char *pkey);
 
   RC delete_entry_from_node(PageNum node_page, const char *pkey);
   RC delete_entry_internal(PageNum page_num, const char *pkey);
   RC coalesce_node(PageNum leaf_page, PageNum right_page);
   RC redistribute_nodes(PageNum left_page, PageNum right_page);
 
-  RC find_first_index_satisfied(CompOp comp_op, const char *pkey, PageNum *page_num, int *rididx);
+  RC find_first_index_satisfied(CompOp comp_op, const char *pkey,
+                                PageNum *page_num, int *rididx);
   RC get_first_leaf_page(PageNum *leaf_page);
 
-private:
+ private:
   IndexNode *get_index_node(char *page_data) const;
 
-private:
-  DiskBufferPool  * disk_buffer_pool_ = nullptr;
-  int               file_id_ = -1;
-  bool              header_dirty_ = false;
-  IndexFileHeader   file_header_;
+ private:
+  DiskBufferPool *disk_buffer_pool_ = nullptr;
+  int file_id_ = -1;
+  bool header_dirty_ = false;
+  IndexFileHeader file_header_;
 
-private:
+ private:
   friend class BplusTreeScanner;
 };
 
 class BplusTreeScanner {
-public:
+ public:
   BplusTreeScanner(BplusTreeHandler &index_handler);
 
   /**
@@ -151,22 +158,23 @@ public:
    */
   // RC getIndexTree(char *fileName, Tree *index);
 
-private:
+ private:
   RC get_next_idx_in_memory(RID *rid);
   RC find_idx_pages();
   bool satisfy_condition(const char *key);
 
-private:
-  BplusTreeHandler   & index_handler_;
+ private:
+  BplusTreeHandler &index_handler_;
   bool opened_ = false;
-  CompOp comp_op_ = NO_OP;                      // 用于比较的操作符
-  const char *value_ = nullptr;		              // 与属性行比较的值
-  int num_fixed_pages_ = -1;                    // 固定在缓冲区中的页，与指定的页面固定策略有关
-  int pinned_page_count_ = 0;                   // 实际固定在缓冲区的页面数
-  BPPageHandle page_handles_[BP_BUFFER_SIZE];   // 固定在缓冲区页面所对应的页面操作列表
-  int next_index_of_page_handle_ = -1;          // 当前被扫描页面的操作索引
-  int index_in_node_ = -1;                      // 当前B+ Tree页面上的key index
-  PageNum next_page_num_ = -1;                  // 下一个将要被读入的页面号
+  CompOp comp_op_ = NO_OP;       // 用于比较的操作符
+  const char *value_ = nullptr;  // 与属性行比较的值
+  int num_fixed_pages_ = -1;  // 固定在缓冲区中的页，与指定的页面固定策略有关
+  int pinned_page_count_ = 0;  // 实际固定在缓冲区的页面数
+  BPPageHandle
+      page_handles_[BP_BUFFER_SIZE];  // 固定在缓冲区页面所对应的页面操作列表
+  int next_index_of_page_handle_ = -1;  // 当前被扫描页面的操作索引
+  int index_in_node_ = -1;              // 当前B+ Tree页面上的key index
+  PageNum next_page_num_ = -1;          // 下一个将要被读入的页面号
 };
 
-#endif //__OBSERVER_STORAGE_COMMON_INDEX_MANAGER_H_
+#endif  //__OBSERVER_STORAGE_COMMON_INDEX_MANAGER_H_
