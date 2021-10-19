@@ -28,27 +28,27 @@ See the Mulan PSL v2 for more details. */
 class SessionStage : public common::Stage {
  public:
   ~SessionStage();
-  static Stage *make_stage(const std::string &tag);
+  static Stage* make_stage(const std::string& tag);
 
  protected:
   // common function
-  SessionStage(const char *tag);
+  SessionStage(const char* tag);
   bool set_properties() override;
 
   bool initialize() override;
   void cleanup() override;
-  void handle_event(common::StageEvent *event) override;
-  void callback_event(common::StageEvent *event,
-                      common::CallbackContext *context) override;
+  void handle_event(common::StageEvent* event) override;
+  void callback_event(common::StageEvent* event,
+                      common::CallbackContext* context) override;
 
  protected:
-  void handle_input(common::StageEvent *event);
+  void handle_input(common::StageEvent* event);
 
-  void handle_request(common::StageEvent *event);
+  void handle_request(common::StageEvent* event);
 
  private:
-  Stage *resolve_stage_;
-  common::SimpleTimer *sql_metric_;
+  Stage* resolve_stage_;
+  common::SimpleTimer* sql_metric_;
   static const std::string SQL_METRIC_TAG;
 };
 

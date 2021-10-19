@@ -32,10 +32,10 @@ See the Mulan PSL v2 for more details. */
 #define PORT_DEFAULT 66789
 
 using namespace common;
-char *server_host = (char *)LOCAL_HOST;
+char* server_host = (char*)LOCAL_HOST;
 
-void *test_server(void *param) {
-  Meter *tps_meter = (Meter *)param;
+void* test_server(void* param) {
+  Meter* tps_meter = (Meter*)param;
 
   std::cout << "Begin to connect server. " << std::endl;
   int sockfd, sendbytes;
@@ -45,7 +45,7 @@ void *test_server(void *param) {
   char recv_buf[MAX_MEM_BUFFER_SIZE] = {0};
   snprintf(send_buf, sizeof(send_buf), "%s", "select count(*) from test");
   // char buf[MAXDATASIZE];
-  struct hostent *host;
+  struct hostent* host;
   struct sockaddr_in serv_addr;
 
   if ((host = gethostbyname(server_host)) == NULL) {
@@ -59,10 +59,10 @@ void *test_server(void *param) {
 
   serv_addr.sin_family = AF_INET;
   serv_addr.sin_port = htons((uint16_t)PORT_DEFAULT);
-  serv_addr.sin_addr = *((struct in_addr *)host->h_addr);
+  serv_addr.sin_addr = *((struct in_addr*)host->h_addr);
   bzero(&(serv_addr.sin_zero), 8);
 
-  if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr)) ==
+  if (connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(struct sockaddr)) ==
       -1) {
     perror("Failed to connect \n");
     exit(1);
@@ -92,16 +92,16 @@ void *test_server(void *param) {
   return NULL;
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   if (argc >= 2) {
     server_host = argv[1];
   }
 
-  MetricsRegistry &metric_registry = get_metrics_registry();
-  ConsoleReporter *console_reporter = get_console_reporter();
+  MetricsRegistry& metric_registry = get_metrics_registry();
+  ConsoleReporter* console_reporter = get_console_reporter();
   metric_registry.add_reporter(console_reporter);
 
-  Meter *tps_meter = new Meter();
+  Meter* tps_meter = new Meter();
 
   metric_registry.register_metric("client.sendtps", tps_meter);
 

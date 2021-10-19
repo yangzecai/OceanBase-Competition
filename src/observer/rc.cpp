@@ -17,7 +17,7 @@ See the Mulan PSL v2 for more details. */
   case rc:                 \
     return #rc
 
-const char *strrc(RC rc) {
+const char* strrc(RC rc) {
   switch (rc) {
     RC_CASE_STRING(SUCCESS);
     RC_CASE_STRING(GENERIC_ERROR);

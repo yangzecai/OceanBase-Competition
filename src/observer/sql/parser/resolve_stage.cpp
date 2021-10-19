@@ -11,8 +11,6 @@ See the Mulan PSL v2 for more details. */
 // Created by Longda on 2021/4/13.
 //
 
-#include "resolve_stage.h"
-
 #include <string.h>
 
 #include <string>
@@ -23,18 +21,19 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 #include "common/seda/timer_stage.h"
 #include "event/sql_event.h"
+#include "resolve_stage.h"
 
 using namespace common;
 
 //! Constructor
-ResolveStage::ResolveStage(const char *tag) : Stage(tag) {}
+ResolveStage::ResolveStage(const char* tag) : Stage(tag) {}
 
 //! Destructor
 ResolveStage::~ResolveStage() {}
 
 //! Parse properties, instantiate a stage object
-Stage *ResolveStage::make_stage(const std::string &tag) {
-  ResolveStage *stage = new (std::nothrow) ResolveStage(tag.c_str());
+Stage* ResolveStage::make_stage(const std::string& tag) {
+  ResolveStage* stage = new (std::nothrow) ResolveStage(tag.c_str());
   if (stage == nullptr) {
     LOG_ERROR("new ResolveStage failed");
     return nullptr;
@@ -60,7 +59,7 @@ bool ResolveStage::set_properties() {
 bool ResolveStage::initialize() {
   LOG_TRACE("Enter");
 
-  std::list<Stage *>::iterator stgp = next_stage_list_.begin();
+  std::list<Stage*>::iterator stgp = next_stage_list_.begin();
   query_cache_stage = *(stgp++);
 
   LOG_TRACE("Exit");
@@ -74,10 +73,10 @@ void ResolveStage::cleanup() {
   LOG_TRACE("Exit");
 }
 
-void ResolveStage::handle_event(StageEvent *event) {
+void ResolveStage::handle_event(StageEvent* event) {
   LOG_TRACE("Enter\n");
 
-  SQLStageEvent *sql_event = static_cast<SQLStageEvent *>(event);
+  SQLStageEvent* sql_event = static_cast<SQLStageEvent*>(event);
 
   // do nothing here
   query_cache_stage->handle_event(sql_event);
@@ -86,7 +85,7 @@ void ResolveStage::handle_event(StageEvent *event) {
   return;
 }
 
-void ResolveStage::callback_event(StageEvent *event, CallbackContext *context) {
+void ResolveStage::callback_event(StageEvent* event, CallbackContext* context) {
   LOG_TRACE("Enter\n");
 
   LOG_TRACE("Exit\n");

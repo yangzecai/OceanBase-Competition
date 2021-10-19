@@ -20,7 +20,7 @@ See the Mulan PSL v2 for more details. */
 class Session;
 
 typedef struct _ConnectionContext {
-  Session *session;
+  Session* session;
   int fd;
   struct event read_event;
   pthread_mutex_t mutex;

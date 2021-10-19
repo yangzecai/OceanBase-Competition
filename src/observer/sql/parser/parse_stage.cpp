@@ -11,8 +11,6 @@ See the Mulan PSL v2 for more details. */
 // Created by Longda on 2021/4/13.
 //
 
-#include "parse_stage.h"
-
 #include <string.h>
 
 #include <string>
@@ -25,19 +23,20 @@ See the Mulan PSL v2 for more details. */
 #include "event/execution_plan_event.h"
 #include "event/session_event.h"
 #include "event/sql_event.h"
+#include "parse_stage.h"
 #include "sql/parser/parse.h"
 
 using namespace common;
 
 //! Constructor
-ParseStage::ParseStage(const char *tag) : Stage(tag) {}
+ParseStage::ParseStage(const char* tag) : Stage(tag) {}
 
 //! Destructor
 ParseStage::~ParseStage() {}
 
 //! Parse properties, instantiate a stage object
-Stage *ParseStage::make_stage(const std::string &tag) {
-  ParseStage *stage = new (std::nothrow) ParseStage(tag.c_str());
+Stage* ParseStage::make_stage(const std::string& tag) {
+  ParseStage* stage = new (std::nothrow) ParseStage(tag.c_str());
   if (stage == nullptr) {
     LOG_ERROR("new ParseStage failed");
     return nullptr;
@@ -63,7 +62,7 @@ bool ParseStage::set_properties() {
 bool ParseStage::initialize() {
   LOG_TRACE("Enter");
 
-  std::list<Stage *>::iterator stgp = next_stage_list_.begin();
+  std::list<Stage*>::iterator stgp = next_stage_list_.begin();
   optimize_stage_ = *(stgp++);
 
   LOG_TRACE("Exit");
@@ -77,17 +76,17 @@ void ParseStage::cleanup() {
   LOG_TRACE("Exit");
 }
 
-void ParseStage::handle_event(StageEvent *event) {
+void ParseStage::handle_event(StageEvent* event) {
   LOG_TRACE("Enter\n");
 
-  StageEvent *new_event = handle_request(event);
+  StageEvent* new_event = handle_request(event);
   if (nullptr == new_event) {
     callback_event(event, nullptr);
     event->done_immediate();
     return;
   }
 
-  CompletionCallback *cb = new (std::nothrow) CompletionCallback(this, nullptr);
+  CompletionCallback* cb = new (std::nothrow) CompletionCallback(this, nullptr);
   if (cb == nullptr) {
     LOG_ERROR("Failed to new callback for SQLStageEvent");
     callback_event(event, nullptr);
@@ -101,19 +100,19 @@ void ParseStage::handle_event(StageEvent *event) {
   return;
 }
 
-void ParseStage::callback_event(StageEvent *event, CallbackContext *context) {
+void ParseStage::callback_event(StageEvent* event, CallbackContext* context) {
   LOG_TRACE("Enter\n");
-  SQLStageEvent *sql_event = static_cast<SQLStageEvent *>(event);
+  SQLStageEvent* sql_event = static_cast<SQLStageEvent*>(event);
   sql_event->session_event()->done_immediate();
   LOG_TRACE("Exit\n");
   return;
 }
 
-StageEvent *ParseStage::handle_request(StageEvent *event) {
-  SQLStageEvent *sql_event = static_cast<SQLStageEvent *>(event);
-  const std::string &sql = sql_event->get_sql();
+StageEvent* ParseStage::handle_request(StageEvent* event) {
+  SQLStageEvent* sql_event = static_cast<SQLStageEvent*>(event);
+  const std::string& sql = sql_event->get_sql();
 
-  Query *result = query_create();
+  Query* result = query_create();
   if (nullptr == result) {
     LOG_ERROR("Failed to create query.");
     return nullptr;
@@ -122,7 +121,7 @@ StageEvent *ParseStage::handle_request(StageEvent *event) {
   RC ret = parse(sql.c_str(), result);
   if (ret != RC::SUCCESS) {
     // set error information to event
-    const char *error =
+    const char* error =
         result->sstr.errors != nullptr ? result->sstr.errors : "Unknown error";
     char response[256];
     snprintf(response, sizeof(response),

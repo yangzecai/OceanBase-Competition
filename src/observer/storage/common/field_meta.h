@@ -28,22 +28,22 @@ class FieldMeta {
   FieldMeta();
   ~FieldMeta() = default;
 
-  RC init(const char *name, AttrType attr_type, int attr_offset, int attr_len,
+  RC init(const char* name, AttrType attr_type, int attr_offset, int attr_len,
           bool visible);
 
  public:
-  const char *name() const;
+  const char* name() const;
   AttrType type() const;
   int offset() const;
   int len() const;
   bool visible() const;
 
  public:
-  void desc(std::ostream &os) const;
+  void desc(std::ostream& os) const;
 
  public:
-  void to_json(Json::Value &json_value) const;
-  static RC from_json(const Json::Value &json_value, FieldMeta &field);
+  void to_json(Json::Value& json_value) const;
+  static RC from_json(const Json::Value& json_value, FieldMeta& field);
 
  private:
   std::string name_;

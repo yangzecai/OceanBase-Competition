@@ -11,8 +11,6 @@ See the Mulan PSL v2 for more details. */
 // Created by Longda on 2021/4/13.
 //
 
-#include "plan_cache_stage.h"
-
 #include <string.h>
 
 #include <string>
@@ -22,18 +20,19 @@ See the Mulan PSL v2 for more details. */
 #include "common/lang/string.h"
 #include "common/log/log.h"
 #include "common/seda/timer_stage.h"
+#include "plan_cache_stage.h"
 
 using namespace common;
 
 //! Constructor
-PlanCacheStage::PlanCacheStage(const char *tag) : Stage(tag) {}
+PlanCacheStage::PlanCacheStage(const char* tag) : Stage(tag) {}
 
 //! Destructor
 PlanCacheStage::~PlanCacheStage() {}
 
 //! Parse properties, instantiate a stage object
-Stage *PlanCacheStage::make_stage(const std::string &tag) {
-  PlanCacheStage *stage = new (std::nothrow) PlanCacheStage(tag.c_str());
+Stage* PlanCacheStage::make_stage(const std::string& tag) {
+  PlanCacheStage* stage = new (std::nothrow) PlanCacheStage(tag.c_str());
   if (stage == nullptr) {
     LOG_ERROR("new PlanCacheStage failed");
     return nullptr;
@@ -59,7 +58,7 @@ bool PlanCacheStage::set_properties() {
 bool PlanCacheStage::initialize() {
   LOG_TRACE("Enter");
 
-  std::list<Stage *>::iterator stgp = next_stage_list_.begin();
+  std::list<Stage*>::iterator stgp = next_stage_list_.begin();
   execute_stage = *(stgp++);
   parse_stage = *(stgp++);
 
@@ -74,7 +73,7 @@ void PlanCacheStage::cleanup() {
   LOG_TRACE("Exit");
 }
 
-void PlanCacheStage::handle_event(StageEvent *event) {
+void PlanCacheStage::handle_event(StageEvent* event) {
   LOG_TRACE("Enter\n");
 
   // Add callback to update plan cache
@@ -95,8 +94,8 @@ void PlanCacheStage::handle_event(StageEvent *event) {
   return;
 }
 
-void PlanCacheStage::callback_event(StageEvent *event,
-                                    CallbackContext *context) {
+void PlanCacheStage::callback_event(StageEvent* event,
+                                    CallbackContext* context) {
   LOG_TRACE("Enter\n");
 
   // update execute plan here

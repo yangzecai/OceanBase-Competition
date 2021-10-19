@@ -11,8 +11,6 @@ See the Mulan PSL v2 for more details. */
 // Created by Wangyunlai on 2021/5/12.
 //
 
-#include "storage/common/db.h"
-
 #include <fcntl.h>
 #include <sys/stat.h>
 
@@ -21,18 +19,19 @@ See the Mulan PSL v2 for more details. */
 #include "common/lang/string.h"
 #include "common/log/log.h"
 #include "common/os/path.h"
+#include "db.h"
 #include "storage/common/meta_util.h"
 #include "storage/common/table.h"
 #include "storage/common/table_meta.h"
 
 Db::~Db() {
-  for (auto &iter : opened_tables_) {
+  for (auto& iter : opened_tables_) {
     delete iter.second;
   }
   LOG_INFO("Db has been closed: %s", name_.c_str());
 }
 
-RC Db::init(const char *name, const char *dbpath) {
+RC Db::init(const char* name, const char* dbpath) {
   if (nullptr == name || common::is_blank(name)) {
     LOG_WARN("Name cannot be empty");
     return RC::INVALID_ARGUMENT;
@@ -49,8 +48,8 @@ RC Db::init(const char *name, const char *dbpath) {
   return open_all_tables();
 }
 
-RC Db::create_table(const char *table_name, int attribute_count,
-                    const AttrInfo *attributes) {
+RC Db::create_table(const char* table_name, int attribute_count,
+                    const AttrInfo* attributes) {
   RC rc = RC::SUCCESS;
   // check table_name
   if (opened_tables_.count(table_name) != 0) {
@@ -59,7 +58,7 @@ RC Db::create_table(const char *table_name, int attribute_count,
 
   std::string table_file_path =
       table_meta_file(path_.c_str(), table_name);  // 文件路径可以移到Table模块
-  Table *table = new Table();
+  Table* table = new Table();
   rc = table->create(table_file_path.c_str(), table_name, path_.c_str(),
                      attribute_count, attributes);
   if (rc != RC::SUCCESS) {
@@ -72,7 +71,7 @@ RC Db::create_table(const char *table_name, int attribute_count,
   return RC::SUCCESS;
 }
 
-RC Db::drop_table(const char *table_name) {
+RC Db::drop_table(const char* table_name) {
   RC rc = RC::SUCCESS;
   if (opened_tables_.find(table_name) == opened_tables_.end()) {
     LOG_TRACE("Table does not exist in dp::opened_tables. table name=%s",
@@ -80,7 +79,7 @@ RC Db::drop_table(const char *table_name) {
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }
 
-  Table *table = opened_tables_[table_name];
+  Table* table = opened_tables_[table_name];
 
   rc = table->drop();
   if (rc != RC::SUCCESS) {
@@ -96,8 +95,8 @@ RC Db::drop_table(const char *table_name) {
   return rc;
 }
 
-Table *Db::find_table(const char *table_name) const {
-  std::unordered_map<std::string, Table *>::const_iterator iter =
+Table* Db::find_table(const char* table_name) const {
+  std::unordered_map<std::string, Table*>::const_iterator iter =
       opened_tables_.find(table_name);
   if (iter != opened_tables_.end()) {
     return iter->second;
@@ -115,8 +114,8 @@ RC Db::open_all_tables() {
   }
 
   RC rc = RC::SUCCESS;
-  for (const std::string &filename : table_meta_files) {
-    Table *table = new Table();
+  for (const std::string& filename : table_meta_files) {
+    Table* table = new Table();
     rc = table->open(filename.c_str(), path_.c_str());
     if (rc != RC::SUCCESS) {
       delete table;
@@ -141,18 +140,18 @@ RC Db::open_all_tables() {
   return rc;
 }
 
-const char *Db::name() const { return name_.c_str(); }
+const char* Db::name() const { return name_.c_str(); }
 
-void Db::all_tables(std::vector<std::string> &table_names) const {
-  for (const auto &table_item : opened_tables_) {
+void Db::all_tables(std::vector<std::string>& table_names) const {
+  for (const auto& table_item : opened_tables_) {
     table_names.emplace_back(table_item.first);
   }
 }
 
 RC Db::sync() {
   RC rc = RC::SUCCESS;
-  for (const auto &table_pair : opened_tables_) {
-    Table *table = table_pair.second;
+  for (const auto& table_pair : opened_tables_) {
+    Table* table = table_pair.second;
     rc = table->sync();
     if (rc != RC::SUCCESS) {
       LOG_ERROR("Failed to flush table. table=%s.%s, rc=%d:%s", name_.c_str(),

@@ -11,10 +11,9 @@ See the Mulan PSL v2 for more details. */
 // Created by Longda on 2021
 //
 
-#include "common/math/md5.h"
-
 #include <stdio.h>
 
+#include "common/math/md5.h"
 #include "md5_test.h"
 
 using namespace common;
@@ -36,7 +35,7 @@ void Md5Test::string() {
   }
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   Md5Test test;
   test.string();
 

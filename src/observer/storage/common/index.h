@@ -26,8 +26,8 @@ See the Mulan PSL v2 for more details. */
 class IndexDataOperator {
  public:
   virtual ~IndexDataOperator() = default;
-  virtual int compare(const void *data1, const void *data2) const = 0;
-  virtual size_t hash(const void *data) const = 0;
+  virtual int compare(const void* data1, const void* data2) const = 0;
+  virtual size_t hash(const void* data) const = 0;
 };
 
 class IndexScanner;
@@ -37,17 +37,17 @@ class Index {
   Index() = default;
   virtual ~Index() = default;
 
-  const IndexMeta &index_meta() const { return index_meta_; }
+  const IndexMeta& index_meta() const { return index_meta_; }
 
-  virtual RC insert_entry(const char *record, const RID *rid) = 0;
-  virtual RC delete_entry(const char *record, const RID *rid) = 0;
+  virtual RC insert_entry(const char* record, const RID* rid) = 0;
+  virtual RC delete_entry(const char* record, const RID* rid) = 0;
 
-  virtual IndexScanner *create_scanner(CompOp comp_op, const char *value) = 0;
+  virtual IndexScanner* create_scanner(CompOp comp_op, const char* value) = 0;
 
   virtual RC sync() = 0;
 
  protected:
-  RC init(const IndexMeta &index_meta, const FieldMeta &field_meta);
+  RC init(const IndexMeta& index_meta, const FieldMeta& field_meta);
 
  protected:
   IndexMeta index_meta_;
@@ -59,7 +59,7 @@ class IndexScanner {
   IndexScanner() = default;
   virtual ~IndexScanner() = default;
 
-  virtual RC next_entry(RID *rid) = 0;
+  virtual RC next_entry(RID* rid) = 0;
   virtual RC destroy() = 0;
 };
 

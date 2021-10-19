@@ -11,12 +11,11 @@ See the Mulan PSL v2 for more details. */
 // Created by wangyunlai.wyl on 2021
 //
 
-#include "common/lang/bitmap.h"
-
 #include <string.h>
 
 #include <sstream>
 
+#include "common/lang/bitmap.h"
 #include "gtest/gtest.h"
 
 using namespace common;
@@ -67,7 +66,7 @@ TEST(test_bitmap, test_bitmap) {
   ASSERT_EQ(16, bitmap3.next_setted_bit(8));
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   // 分析gtest程序的命令行参数
   testing::InitGoogleTest(&argc, argv);
 

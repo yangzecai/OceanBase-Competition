@@ -27,7 +27,7 @@ class ExecutionNode {
   ExecutionNode() = default;
   virtual ~ExecutionNode() = default;
 
-  virtual RC execute(TupleSet &tuple_set) = 0;
+  virtual RC execute(TupleSet& tuple_set) = 0;
 };
 
 class SelectExeNode : public ExecutionNode {
@@ -35,16 +35,16 @@ class SelectExeNode : public ExecutionNode {
   SelectExeNode();
   virtual ~SelectExeNode();
 
-  RC init(Trx *trx, Table *table, TupleSchema &&tuple_schema,
-          std::vector<DefaultConditionFilter *> &&condition_filters);
+  RC init(Trx* trx, Table* table, TupleSchema&& tuple_schema,
+          std::vector<DefaultConditionFilter*>&& condition_filters);
 
-  RC execute(TupleSet &tuple_set) override;
+  RC execute(TupleSet& tuple_set) override;
 
  private:
-  Trx *trx_ = nullptr;
-  Table *table_;
+  Trx* trx_ = nullptr;
+  Table* table_;
   TupleSchema tuple_schema_;
-  std::vector<DefaultConditionFilter *> condition_filters_;
+  std::vector<DefaultConditionFilter*> condition_filters_;
 };
 
 #endif  //__OBSERVER_SQL_EXECUTOR_EXECUTION_NODE_H_

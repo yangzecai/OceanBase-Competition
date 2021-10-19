@@ -29,8 +29,8 @@ class ThreadTest {
   int startTestCond();
   int startTestDeadLock();
 
-  static void *testCond(void *param);
-  static void *testDeadLock(void *param);
+  static void* testCond(void* param);
+  static void* testDeadLock(void* param);
 
  private:
   int param[10];

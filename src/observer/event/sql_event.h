@@ -22,16 +22,16 @@ class SessionEvent;
 
 class SQLStageEvent : public common::StageEvent {
  public:
-  SQLStageEvent(SessionEvent *event, std::string &sql);
+  SQLStageEvent(SessionEvent* event, std::string& sql);
   virtual ~SQLStageEvent() noexcept;
 
-  const std::string &get_sql() const { return sql_; }
+  const std::string& get_sql() const { return sql_; }
 
-  SessionEvent *session_event() const { return session_event_; }
+  SessionEvent* session_event() const { return session_event_; }
 
  private:
-  SessionEvent *session_event_;
-  std::string &sql_;
+  SessionEvent* session_event_;
+  std::string& sql_;
   // void *context_;
 };
 

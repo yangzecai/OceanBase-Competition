@@ -10,12 +10,12 @@ See the Mulan PSL v2 for more details. */
 //
 // Created by Longda on 2021/4/16.
 //
-#include "common/os/pidfile.h"
 
 #include <unistd.h>
 
 #include "common/io/io.h"
 #include "common/lang/string.h"
+#include "common/os/pidfile.h"
 #include "gtest/gtest.h"
 
 using namespace common;
@@ -23,13 +23,13 @@ using namespace common;
 int main() {
   long long pid = (long long)getpid();
 
-  const char *programName = "test";
+  const char* programName = "test";
   writePidFile(programName);
 
   std::string pidFile = getPidPath();
 
   char buf[1024] = {0};
-  char *p = buf;
+  char* p = buf;
   size_t size = 0;
   readFromFile(pidFile, p, size);
 

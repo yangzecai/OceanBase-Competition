@@ -11,7 +11,6 @@ See the Mulan PSL v2 for more details. */
 // Created by Longda on 2021/4/13.
 //
 #include "storage/common/bplus_tree.h"
-
 #include "common/log/log.h"
 #include "rc.h"
 #include "sql/parser/parse_defs.h"
@@ -25,11 +24,11 @@ int float_compare(float f1, float f2) {
   return result > 0 ? 1 : -1;
 }
 
-IndexNode *BplusTreeHandler::get_index_node(char *page_data) const {
-  IndexNode *node = (IndexNode *)(page_data + sizeof(IndexFileHeader));
-  node->keys = (char *)node + sizeof(IndexNode);
+IndexNode* BplusTreeHandler::get_index_node(char* page_data) const {
+  IndexNode* node = (IndexNode*)(page_data + sizeof(IndexFileHeader));
+  node->keys = (char*)node + sizeof(IndexNode);
   node->rids =
-      (RID *)(node->keys + file_header_.order * file_header_.key_length);
+      (RID*)(node->keys + file_header_.order * file_header_.key_length);
   return node;
 }
 
@@ -37,13 +36,13 @@ RC BplusTreeHandler::sync() {
   return disk_buffer_pool_->flush_all_pages(file_id_);
 }
 
-RC BplusTreeHandler::create(const char *file_name, AttrType attr_type,
+RC BplusTreeHandler::create(const char* file_name, AttrType attr_type,
                             int attr_length) {
   BPPageHandle page_handle;
-  IndexNode *root;
-  char *pdata;
+  IndexNode* root;
+  char* pdata;
   RC rc;
-  DiskBufferPool *disk_buffer_pool = theGlobalDiskBufferPool();
+  DiskBufferPool* disk_buffer_pool = theGlobalDiskBufferPool();
   rc = disk_buffer_pool->create_file(file_name);
   if (rc != SUCCESS) {
     return rc;
@@ -76,7 +75,7 @@ RC BplusTreeHandler::create(const char *file_name, AttrType attr_type,
               strrc(rc));
     return rc;
   }
-  IndexFileHeader *file_header = (IndexFileHeader *)pdata;
+  IndexFileHeader* file_header = (IndexFileHeader*)pdata;
   file_header->attr_length = attr_length;
   file_header->key_length = attr_length + sizeof(RID);
   file_header->attr_type = attr_type;
@@ -112,15 +111,15 @@ RC BplusTreeHandler::create(const char *file_name, AttrType attr_type,
   return SUCCESS;
 }
 
-RC BplusTreeHandler::open(const char *file_name) {
+RC BplusTreeHandler::open(const char* file_name) {
   RC rc;
   BPPageHandle page_handle;
-  char *pdata;
+  char* pdata;
   if (disk_buffer_pool_ != nullptr) {
     return RC::RECORD_OPENNED;
   }
 
-  DiskBufferPool *disk_buffer_pool = theGlobalDiskBufferPool();
+  DiskBufferPool* disk_buffer_pool = theGlobalDiskBufferPool();
   int file_id;
   rc = disk_buffer_pool->open_file(file_name, &file_id);
   if (rc != SUCCESS) {
@@ -154,29 +153,29 @@ RC BplusTreeHandler::close() {
   return RC::SUCCESS;
 }
 
-static int CmpRid(const RID *rid1, const RID *rid2) {
+static int CmpRid(const RID* rid1, const RID* rid2) {
   if (rid1->page_num > rid2->page_num) return 1;
   if (rid1->page_num < rid2->page_num) return -1;
   if (rid1->slot_num > rid2->slot_num) return 1;
   if (rid1->slot_num < rid2->slot_num) return -1;
   return 0;
 }
-int CompareKey(const char *pdata, const char *pkey, AttrType attr_type,
+int CompareKey(const char* pdata, const char* pkey, AttrType attr_type,
                int attr_length) {  // 简化
   int i1, i2;
   float f1, f2;
   const char *s1, *s2;
   switch (attr_type) {
     case INTS: {
-      i1 = *(int *)pdata;
-      i2 = *(int *)pkey;
+      i1 = *(int*)pdata;
+      i2 = *(int*)pkey;
       if (i1 > i2) return 1;
       if (i1 < i2) return -1;
       if (i1 == i2) return 0;
     } break;
     case FLOATS: {
-      f1 = *(float *)pdata;
-      f2 = *(float *)pkey;
+      f1 = *(float*)pdata;
+      f2 = *(float*)pkey;
       return float_compare(f1, f2);
     } break;
     case CHARS: {
@@ -190,22 +189,22 @@ int CompareKey(const char *pdata, const char *pkey, AttrType attr_type,
   }
   return -2;  // This means error happens
 }
-int CmpKey(AttrType attr_type, int attr_length, const char *pdata,
-           const char *pkey) {
+int CmpKey(AttrType attr_type, int attr_length, const char* pdata,
+           const char* pkey) {
   int result = CompareKey(pdata, pkey, attr_type, attr_length);
   if (0 != result) {
     return result;
   }
-  RID *rid1 = (RID *)(pdata + attr_length);
-  RID *rid2 = (RID *)(pkey + attr_length);
+  RID* rid1 = (RID*)(pdata + attr_length);
+  RID* rid2 = (RID*)(pkey + attr_length);
   return CmpRid(rid1, rid2);
 }
 
-RC BplusTreeHandler::find_leaf(const char *pkey, PageNum *leaf_page) {
+RC BplusTreeHandler::find_leaf(const char* pkey, PageNum* leaf_page) {
   RC rc;
   BPPageHandle page_handle;
-  IndexNode *node;
-  char *pdata;
+  IndexNode* node;
+  char* pdata;
   int i, tmp;
   rc = disk_buffer_pool_->get_this_page(file_id_, file_header_.root_page,
                                         &page_handle);
@@ -250,13 +249,13 @@ RC BplusTreeHandler::find_leaf(const char *pkey, PageNum *leaf_page) {
   return SUCCESS;
 }
 
-RC BplusTreeHandler::insert_into_leaf(PageNum leaf_page, const char *pkey,
-                                      const RID *rid) {
+RC BplusTreeHandler::insert_into_leaf(PageNum leaf_page, const char* pkey,
+                                      const RID* rid) {
   int i, insert_pos, tmp;
   BPPageHandle page_handle;
-  char *pdata;
+  char* pdata;
   char *from, *to;
-  IndexNode *node;
+  IndexNode* node;
   RC rc;
 
   rc = disk_buffer_pool_->get_this_page(file_id_, leaf_page, &page_handle);
@@ -299,11 +298,11 @@ RC BplusTreeHandler::insert_into_leaf(PageNum leaf_page, const char *pkey,
 }
 
 RC BplusTreeHandler::print() {
-  IndexNode *node;
+  IndexNode* node;
   RC rc;
   BPPageHandle page_handle;
   int i, j;
-  char *pdata;
+  char* pdata;
   int page_count;
   rc = disk_buffer_pool_->get_page_count(file_id_, &page_count);
   if (rc != SUCCESS) {
@@ -335,15 +334,15 @@ RC BplusTreeHandler::print() {
 }
 
 RC BplusTreeHandler::insert_into_leaf_after_split(PageNum leaf_page,
-                                                  const char *pkey,
-                                                  const RID *rid) {
+                                                  const char* pkey,
+                                                  const RID* rid) {
   RC rc;
   BPPageHandle page_handle1, page_handle2;
   IndexNode *leaf, *new_node;
   PageNum new_page, parent_page;
   RID *temp_pointers, tmprid;
   char *temp_keys, *new_key;
-  char *pdata;
+  char* pdata;
   int insert_pos, split, i, j, tmp;
 
   rc = disk_buffer_pool_->get_this_page(file_id_, leaf_page, &page_handle1);
@@ -379,14 +378,14 @@ RC BplusTreeHandler::insert_into_leaf_after_split(PageNum leaf_page,
 
   // print();
 
-  temp_keys = (char *)malloc(file_header_.key_length * file_header_.order);
+  temp_keys = (char*)malloc(file_header_.key_length * file_header_.order);
   if (temp_keys == nullptr) {
     LOG_ERROR("Failed to alloc memory for temp key. size=%d",
               file_header_.key_length * file_header_.order);
     return RC::NOMEM;
   }
 
-  temp_pointers = (RID *)malloc((file_header_.order + 1) * sizeof(RID));
+  temp_pointers = (RID*)malloc((file_header_.order + 1) * sizeof(RID));
   if (temp_pointers == nullptr) {
     LOG_ERROR("Failed to alloc memory for temp pointers. size=%ld",
               (file_header_.order + 1) * sizeof(RID));
@@ -434,7 +433,7 @@ RC BplusTreeHandler::insert_into_leaf_after_split(PageNum leaf_page,
   tmprid.slot_num = -1;
   memcpy(leaf->rids + file_header_.order - 1, &tmprid, sizeof(RID));
 
-  new_key = (char *)malloc(file_header_.key_length);
+  new_key = (char*)malloc(file_header_.key_length);
   if (new_key == nullptr) {
     LOG_ERROR("Failed to alloc memory for new key. size=%d",
               file_header_.key_length);
@@ -476,11 +475,11 @@ RC BplusTreeHandler::insert_into_leaf_after_split(PageNum leaf_page,
 }
 
 RC BplusTreeHandler::insert_intern_node(PageNum parent_page, PageNum left_page,
-                                        PageNum right_page, const char *pkey) {
+                                        PageNum right_page, const char* pkey) {
   int i, insert_pos;
   BPPageHandle page_handle;
-  char *pdata;
-  IndexNode *node;
+  char* pdata;
+  IndexNode* node;
   RID rid;
   RC rc;
 
@@ -525,14 +524,14 @@ RC BplusTreeHandler::insert_intern_node(PageNum parent_page, PageNum left_page,
 RC BplusTreeHandler::insert_intern_node_after_split(PageNum inter_page,
                                                     PageNum left_page,
                                                     PageNum right_page,
-                                                    const char *pkey) {
+                                                    const char* pkey) {
   RC rc;
   BPPageHandle page_handle1, page_handle2, child_page_handle;
   IndexNode *inter_node, *new_node, *child_node;
   PageNum new_page, child_page, parent_page;
   RID *temp_pointers, tmprid;
   char *temp_keys, *new_key;
-  char *pdata;
+  char* pdata;
   int insert_pos, i, j, split;
   rc = disk_buffer_pool_->get_this_page(file_id_, inter_page, &page_handle1);
   if (rc != SUCCESS) {
@@ -568,14 +567,14 @@ RC BplusTreeHandler::insert_intern_node_after_split(PageNum inter_page,
 
   // print();
 
-  temp_keys = (char *)malloc(file_header_.key_length * file_header_.order);
+  temp_keys = (char*)malloc(file_header_.key_length * file_header_.order);
   if (temp_keys == nullptr) {
     LOG_ERROR("Failed to alloc memory for temp keys. size=%d",
               file_header_.key_length * file_header_.order);
     return RC::NOMEM;
   }
 
-  temp_pointers = (RID *)malloc((file_header_.order + 1) * sizeof(RID));
+  temp_pointers = (RID*)malloc((file_header_.order + 1) * sizeof(RID));
   if (temp_pointers == nullptr) {
     LOG_ERROR("Failed to alloc memory for temp pointers. size=%ld",
               (file_header_.order + 1) * sizeof(RID));
@@ -583,7 +582,7 @@ RC BplusTreeHandler::insert_intern_node_after_split(PageNum inter_page,
     return RC::NOMEM;
   }
 
-  new_key = (char *)malloc(file_header_.key_length);
+  new_key = (char*)malloc(file_header_.key_length);
   if (new_key == nullptr) {
     LOG_ERROR("Failed to alloc memory for new key. size=%d",
               file_header_.key_length);
@@ -648,7 +647,7 @@ RC BplusTreeHandler::insert_intern_node_after_split(PageNum inter_page,
       free(new_key);
       return rc;
     }
-    child_node = (IndexNode *)(pdata + sizeof(IndexFileHeader));
+    child_node = (IndexNode*)(pdata + sizeof(IndexFileHeader));
     child_node->parent = new_page;
     rc = disk_buffer_pool_->mark_dirty(&child_page_handle);
     if (rc != SUCCESS) {
@@ -696,11 +695,11 @@ RC BplusTreeHandler::insert_intern_node_after_split(PageNum inter_page,
 }
 
 RC BplusTreeHandler::insert_into_parent(PageNum parent_page, PageNum left_page,
-                                        const char *pkey, PageNum right_page) {
+                                        const char* pkey, PageNum right_page) {
   RC rc;
   BPPageHandle page_handle;
-  IndexNode *node;
-  char *pdata;
+  IndexNode* node;
+  char* pdata;
   if (parent_page == -1) {
     return insert_into_new_root(left_page, pkey, right_page);
   }
@@ -713,7 +712,7 @@ RC BplusTreeHandler::insert_into_parent(PageNum parent_page, PageNum left_page,
   if (rc != SUCCESS) {
     return rc;
   }
-  node = (IndexNode *)(pdata + sizeof(IndexFileHeader));
+  node = (IndexNode*)(pdata + sizeof(IndexFileHeader));
   if (node->key_num < file_header_.order - 1) {
     rc = disk_buffer_pool_->unpin_page(&page_handle);
     if (rc != SUCCESS) {
@@ -730,14 +729,14 @@ RC BplusTreeHandler::insert_into_parent(PageNum parent_page, PageNum left_page,
   }
 }
 
-RC BplusTreeHandler::insert_into_new_root(PageNum left_page, const char *pkey,
+RC BplusTreeHandler::insert_into_new_root(PageNum left_page, const char* pkey,
                                           PageNum right_page) {
   RC rc;
   BPPageHandle page_handle;
   IndexNode *root, *left, *right;
   PageNum root_page;
   RID rid;
-  char *pdata;
+  char* pdata;
   rc = disk_buffer_pool_->allocate_page(file_id_, &page_handle);
   if (rc != SUCCESS) {
     return rc;
@@ -780,7 +779,7 @@ RC BplusTreeHandler::insert_into_new_root(PageNum left_page, const char *pkey,
   if (rc != SUCCESS) {
     return rc;
   }
-  left = (IndexNode *)(pdata + sizeof(IndexFileHeader));
+  left = (IndexNode*)(pdata + sizeof(IndexFileHeader));
   left->parent = root_page;
 
   rc = disk_buffer_pool_->mark_dirty(&page_handle);
@@ -800,7 +799,7 @@ RC BplusTreeHandler::insert_into_new_root(PageNum left_page, const char *pkey,
   if (rc != SUCCESS) {
     return rc;
   }
-  right = (IndexNode *)(pdata + sizeof(IndexFileHeader));
+  right = (IndexNode*)(pdata + sizeof(IndexFileHeader));
   right->parent = root_page;
 
   rc = disk_buffer_pool_->mark_dirty(&page_handle);
@@ -816,16 +815,16 @@ RC BplusTreeHandler::insert_into_new_root(PageNum left_page, const char *pkey,
   return SUCCESS;
 }
 
-RC BplusTreeHandler::insert_entry(const char *pkey, const RID *rid) {
+RC BplusTreeHandler::insert_entry(const char* pkey, const RID* rid) {
   RC rc;
   PageNum leaf_page;
   BPPageHandle page_handle;
   char *pdata, *key;
-  IndexNode *leaf;
+  IndexNode* leaf;
   if (nullptr == disk_buffer_pool_) {
     return RC::RECORD_CLOSED;
   }
-  key = (char *)malloc(file_header_.key_length);
+  key = (char*)malloc(file_header_.key_length);
   if (key == nullptr) {
     LOG_ERROR("Failed to alloc memory for key. size=%d",
               file_header_.key_length);
@@ -850,7 +849,7 @@ RC BplusTreeHandler::insert_entry(const char *pkey, const RID *rid) {
     free(key);
     return rc;
   }
-  leaf = (IndexNode *)(pdata + sizeof(IndexFileHeader));
+  leaf = (IndexNode*)(pdata + sizeof(IndexFileHeader));
 
   if (leaf->key_num < file_header_.order - 1) {
     rc = disk_buffer_pool_->unpin_page(&page_handle);
@@ -880,15 +879,15 @@ RC BplusTreeHandler::insert_entry(const char *pkey, const RID *rid) {
   }
 }
 
-RC BplusTreeHandler::get_entry(const char *pkey, RID *rid) {
+RC BplusTreeHandler::get_entry(const char* pkey, RID* rid) {
   RC rc;
   PageNum leaf_page;
   BPPageHandle page_handle;
   int i;
   char *pdata, *key;
-  IndexNode *leaf;
+  IndexNode* leaf;
 
-  key = (char *)malloc(file_header_.key_length);
+  key = (char*)malloc(file_header_.key_length);
   if (key == nullptr) {
     LOG_ERROR("Failed to alloc memory for key. size=%d",
               file_header_.key_length);
@@ -928,10 +927,10 @@ RC BplusTreeHandler::get_entry(const char *pkey, RID *rid) {
 }
 
 RC BplusTreeHandler::delete_entry_from_node(PageNum node_page,
-                                            const char *pkey) {
+                                            const char* pkey) {
   BPPageHandle page_handle;
-  IndexNode *node;
-  char *pdata;
+  IndexNode* node;
+  char* pdata;
   int delete_index, i, tmp;
   RC rc;
 
@@ -1060,7 +1059,7 @@ RC BplusTreeHandler::coalesce_node(PageNum leaf_page, PageNum right_page) {
       if (rc != SUCCESS) {
         return rc;
       }
-      node = (IndexNode *)(pdata + sizeof(IndexFileHeader));
+      node = (IndexNode*)(pdata + sizeof(IndexFileHeader));
       node->parent = leaf_page;
 
       rc = disk_buffer_pool_->mark_dirty(&tmphandle);
@@ -1074,7 +1073,7 @@ RC BplusTreeHandler::coalesce_node(PageNum leaf_page, PageNum right_page) {
     }
   }
 
-  tmp_key = (char *)malloc(file_header_.key_length);
+  tmp_key = (char*)malloc(file_header_.key_length);
   if (tmp_key == nullptr) {
     LOG_ERROR("Failed to alloc memory for key. size=%d",
               file_header_.key_length);
@@ -1122,7 +1121,7 @@ RC BplusTreeHandler::coalesce_node(PageNum leaf_page, PageNum right_page) {
 RC BplusTreeHandler::redistribute_nodes(PageNum leaf_page, PageNum right_page) {
   BPPageHandle left_handle, right_handle, parent_handle, tmphandle;
   IndexNode *left, *right, *parent, *node;
-  char *pdata;
+  char* pdata;
   PageNum parent_page;
   RC rc;
   int min_key, i, k;
@@ -1224,7 +1223,7 @@ RC BplusTreeHandler::redistribute_nodes(PageNum leaf_page, PageNum right_page) {
       if (rc != SUCCESS) {
         return rc;
       }
-      node = (IndexNode *)(pdata + sizeof(IndexFileHeader));
+      node = (IndexNode*)(pdata + sizeof(IndexFileHeader));
       node->parent = leaf_page;
       rc = disk_buffer_pool_->mark_dirty(&tmphandle);
       if (rc != SUCCESS) {
@@ -1302,11 +1301,11 @@ RC BplusTreeHandler::redistribute_nodes(PageNum leaf_page, PageNum right_page) {
   return SUCCESS;
 }
 
-RC BplusTreeHandler::delete_entry_internal(PageNum page_num, const char *pkey) {
+RC BplusTreeHandler::delete_entry_internal(PageNum page_num, const char* pkey) {
   BPPageHandle parent_handle, page_handle, left_handle, right_handle, tmphandle;
   IndexNode *node, *parent, *left, *right, *tmpnode;
   PageNum leaf_page, right_page;
-  char *pdata;
+  char* pdata;
   RC rc;
   int delete_index, min_key;
 
@@ -1336,7 +1335,7 @@ RC BplusTreeHandler::delete_entry_internal(PageNum page_num, const char *pkey) {
       if (rc != SUCCESS) {
         return rc;
       }
-      tmpnode = (IndexNode *)(pdata + sizeof(IndexFileHeader));
+      tmpnode = (IndexNode*)(pdata + sizeof(IndexFileHeader));
       tmpnode->parent = -1;
       rc = disk_buffer_pool_->mark_dirty(&tmphandle);
       if (rc != SUCCESS) {
@@ -1409,7 +1408,7 @@ RC BplusTreeHandler::delete_entry_internal(PageNum page_num, const char *pkey) {
     if (rc != SUCCESS) {
       return rc;
     }
-    right = (IndexNode *)(pdata + sizeof(IndexFileHeader));
+    right = (IndexNode*)(pdata + sizeof(IndexFileHeader));
 
     if (right->key_num > min_key) {
       rc = disk_buffer_pool_->unpin_page(&page_handle);
@@ -1450,7 +1449,7 @@ RC BplusTreeHandler::delete_entry_internal(PageNum page_num, const char *pkey) {
     if (rc != SUCCESS) {
       return rc;
     }
-    left = (IndexNode *)(pdata + sizeof(IndexFileHeader));
+    left = (IndexNode*)(pdata + sizeof(IndexFileHeader));
 
     if (left->key_num > min_key) {
       rc = disk_buffer_pool_->unpin_page(&page_handle);
@@ -1484,11 +1483,11 @@ RC BplusTreeHandler::delete_entry_internal(PageNum page_num, const char *pkey) {
   }
 }
 
-RC BplusTreeHandler::delete_entry(const char *data, const RID *rid) {
+RC BplusTreeHandler::delete_entry(const char* data, const RID* rid) {
   RC rc;
   PageNum leaf_page;
-  char *pkey;
-  pkey = (char *)malloc(file_header_.key_length);
+  char* pkey;
+  pkey = (char*)malloc(file_header_.key_length);
   if (nullptr == pkey) {
     LOG_ERROR("Failed to alloc memory for key. size=%d",
               file_header_.key_length);
@@ -1513,7 +1512,7 @@ RC BplusTreeHandler::delete_entry(const char *data, const RID *rid) {
 
 RC BplusTreeHandler::print_tree() {
   BPPageHandle page_handle;
-  IndexNode *node;
+  IndexNode* node;
   PageNum page_num;
   char *pdata, *pkey;
   int i;
@@ -1545,16 +1544,16 @@ RC BplusTreeHandler::print_tree() {
     if (rc != SUCCESS) {
       return rc;
     }
-    node = (IndexNode *)(pdata + sizeof(IndexFileHeader));
-    node->keys = (char *)node + sizeof(IndexNode);
+    node = (IndexNode*)(pdata + sizeof(IndexFileHeader));
+    node->keys = (char*)node + sizeof(IndexNode);
     node->rids =
-        (RID *)(node->keys + file_header_.order * file_header_.key_length);
+        (RID*)(node->keys + file_header_.order * file_header_.key_length);
   }
   page_num = 1;
   while (page_num != 0) {
     for (i = 0; i < node->key_num; i++) {
       pkey = node->keys + i * file_header_.key_length;
-      printf("key : %d,rids (page_num:%d slotnum %d)\n", *(int *)pkey,
+      printf("key : %d,rids (page_num:%d slotnum %d)\n", *(int*)pkey,
              node->rids[i].page_num, node->rids[i].slot_num);
     }
     printf("next node:%d\n", page_num);
@@ -1582,11 +1581,11 @@ RC BplusTreeHandler::print_tree() {
   return SUCCESS;
 }
 
-RC BplusTreeHandler::find_first_index_satisfied(CompOp compop, const char *key,
-                                                PageNum *page_num,
-                                                int *rididx) {
+RC BplusTreeHandler::find_first_index_satisfied(CompOp compop, const char* key,
+                                                PageNum* page_num,
+                                                int* rididx) {
   BPPageHandle page_handle;
-  IndexNode *node;
+  IndexNode* node;
   PageNum leaf_page, next;
   char *pdata, *pkey;
   RC rc;
@@ -1602,7 +1601,7 @@ RC BplusTreeHandler::find_first_index_satisfied(CompOp compop, const char *key,
   }
   rid.page_num = -1;
   rid.slot_num = -1;
-  pkey = (char *)malloc(file_header_.key_length);
+  pkey = (char*)malloc(file_header_.key_length);
   if (pkey == nullptr) {
     LOG_ERROR("Failed to alloc memory for key. size=%d",
               file_header_.key_length);
@@ -1672,12 +1671,12 @@ RC BplusTreeHandler::find_first_index_satisfied(CompOp compop, const char *key,
   return RC::RECORD_EOF;
 }
 
-RC BplusTreeHandler::get_first_leaf_page(PageNum *leaf_page) {
+RC BplusTreeHandler::get_first_leaf_page(PageNum* leaf_page) {
   RC rc;
   BPPageHandle page_handle;
   PageNum page_num;
-  IndexNode *node;
-  char *pdata;
+  IndexNode* node;
+  char* pdata;
 
   rc = disk_buffer_pool_->get_this_page(file_id_, file_header_.root_page,
                                         &page_handle);
@@ -1720,10 +1719,10 @@ RC BplusTreeHandler::get_first_leaf_page(PageNum *leaf_page) {
   return SUCCESS;
 }
 
-BplusTreeScanner::BplusTreeScanner(BplusTreeHandler &index_handler)
+BplusTreeScanner::BplusTreeScanner(BplusTreeHandler& index_handler)
     : index_handler_(index_handler) {}
 
-RC BplusTreeScanner::open(CompOp comp_op, const char *value) {
+RC BplusTreeScanner::open(CompOp comp_op, const char* value) {
   RC rc;
   if (opened_) {
     return RC::RECORD_OPENNED;
@@ -1731,7 +1730,7 @@ RC BplusTreeScanner::open(CompOp comp_op, const char *value) {
 
   comp_op_ = comp_op;
 
-  char *value_copy = (char *)malloc(index_handler_.file_header_.attr_length);
+  char* value_copy = (char*)malloc(index_handler_.file_header_.attr_length);
   if (value_copy == nullptr) {
     LOG_ERROR("Failed to alloc memory for value. size=%d",
               index_handler_.file_header_.attr_length);
@@ -1759,13 +1758,13 @@ RC BplusTreeScanner::close() {
   if (!opened_) {
     return RC::RECORD_SCANCLOSED;
   }
-  free((void *)value_);
+  free((void*)value_);
   value_ = nullptr;
   opened_ = false;
   return RC::SUCCESS;
 }
 
-RC BplusTreeScanner::next_entry(RID *rid) {
+RC BplusTreeScanner::next_entry(RID* rid) {
   RC rc;
   if (!opened_) {
     return RC::RECORD_CLOSED;
@@ -1809,13 +1808,13 @@ RC BplusTreeScanner::find_idx_pages() {
     if (rc != SUCCESS) {
       return rc;
     }
-    char *pdata;
+    char* pdata;
     rc = index_handler_.disk_buffer_pool_->get_data(page_handles_ + i, &pdata);
     if (rc != SUCCESS) {
       return rc;
     }
 
-    IndexNode *node = index_handler_.get_index_node(pdata);
+    IndexNode* node = index_handler_.get_index_node(pdata);
     pinned_page_count_++;
     next_page_num_ = node->rids[index_handler_.file_header_.order - 1].page_num;
   }
@@ -1823,9 +1822,9 @@ RC BplusTreeScanner::find_idx_pages() {
   return RC::RECORD_EOF;
 }
 
-RC BplusTreeScanner::get_next_idx_in_memory(RID *rid) {
-  char *pdata;
-  IndexNode *node;
+RC BplusTreeScanner::get_next_idx_in_memory(RID* rid) {
+  char* pdata;
+  IndexNode* node;
   RC rc;
   if (next_index_of_page_handle_ >= pinned_page_count_) {
     return RC::RECORD_NO_MORE_IDX_IN_MEM;
@@ -1859,7 +1858,7 @@ RC BplusTreeScanner::get_next_idx_in_memory(RID *rid) {
   }
   return RC::RECORD_NO_MORE_IDX_IN_MEM;
 }
-bool BplusTreeScanner::satisfy_condition(const char *pkey) {
+bool BplusTreeScanner::satisfy_condition(const char* pkey) {
   int i1 = 0, i2 = 0;
   float f1 = 0, f2 = 0;
   const char *s1 = nullptr, *s2 = nullptr;
@@ -1871,12 +1870,12 @@ bool BplusTreeScanner::satisfy_condition(const char *pkey) {
   AttrType attr_type = index_handler_.file_header_.attr_type;
   switch (attr_type) {
     case INTS:
-      i1 = *(int *)pkey;
-      i2 = *(int *)value_;
+      i1 = *(int*)pkey;
+      i2 = *(int*)value_;
       break;
     case FLOATS:
-      f1 = *(float *)pkey;
-      f2 = *(float *)value_;
+      f1 = *(float*)pkey;
+      f2 = *(float*)value_;
       break;
     case CHARS:
       s1 = pkey;

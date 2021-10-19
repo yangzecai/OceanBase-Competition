@@ -33,11 +33,11 @@ See the Mulan PSL v2 for more details. */
 
 using namespace common;
 
-bool is_exit_command(const char *cmd) {
+bool is_exit_command(const char* cmd) {
   return 0 == strncasecmp("exit", cmd, 4) || 0 == strncasecmp("bye", cmd, 3);
 }
 
-int init_unix_sock(const char *unix_sock_path) {
+int init_unix_sock(const char* unix_sock_path) {
   int sockfd = socket(PF_UNIX, SOCK_STREAM, 0);
   if (sockfd < 0) {
     fprintf(stderr, "failed to create unix socket. %s", strerror(errno));
@@ -49,7 +49,7 @@ int init_unix_sock(const char *unix_sock_path) {
   sockaddr.sun_family = PF_UNIX;
   snprintf(sockaddr.sun_path, sizeof(sockaddr.sun_path), "%s", unix_sock_path);
 
-  if (connect(sockfd, (struct sockaddr *)&sockaddr, sizeof(sockaddr)) < 0) {
+  if (connect(sockfd, (struct sockaddr*)&sockaddr, sizeof(sockaddr)) < 0) {
     fprintf(stderr,
             "failed to connect to server. unix socket path '%s'. error %s",
             sockaddr.sun_path, strerror(errno));
@@ -59,8 +59,8 @@ int init_unix_sock(const char *unix_sock_path) {
   return sockfd;
 }
 
-int init_tcp_sock(const char *server_host, int server_port) {
-  struct hostent *host;
+int init_tcp_sock(const char* server_host, int server_port) {
+  struct hostent* host;
   struct sockaddr_in serv_addr;
 
   if ((host = gethostbyname(server_host)) == NULL) {
@@ -78,10 +78,10 @@ int init_tcp_sock(const char *server_host, int server_port) {
 
   serv_addr.sin_family = AF_INET;
   serv_addr.sin_port = htons(server_port);
-  serv_addr.sin_addr = *((struct in_addr *)host->h_addr);
+  serv_addr.sin_addr = *((struct in_addr*)host->h_addr);
   bzero(&(serv_addr.sin_zero), 8);
 
-  if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr)) ==
+  if (connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(struct sockaddr)) ==
       -1) {
     fprintf(stderr, "Failed to connect. errmsg=%d:%s\n", errno,
             strerror(errno));
@@ -115,7 +115,7 @@ int set_terminal_noncanonical() {
   return 0;
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   int ret = 0;  // set_terminal_noncanonical();
   if (ret < 0) {
     printf(
@@ -123,11 +123,11 @@ int main(int argc, char *argv[]) {
         "handled incorrect\n");
   }
 
-  const char *unix_socket_path = nullptr;
-  const char *server_host = "127.0.0.1";
+  const char* unix_socket_path = nullptr;
+  const char* server_host = "127.0.0.1";
   int server_port = PORT_DEFAULT;
   int opt;
-  extern char *optarg;
+  extern char* optarg;
   while ((opt = getopt(argc, argv, "s:h:p:")) > 0) {
     switch (opt) {
       case 's':
@@ -142,7 +142,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  const char *prompt_str = "miniob > ";
+  const char* prompt_str = "miniob > ";
 
   int sockfd, send_bytes;
   // char send[MAXLINE];

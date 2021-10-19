@@ -67,7 +67,6 @@
 #line 2 "yacc_sql.y"
 
 #include "sql/parser/yacc_sql.tab.h"
-
 #include "sql/parser/lex.yy.h"
 #include "sql/parser/parse_defs.h"
 // #include "common/log/log.h" // 包含C++中的头文件
@@ -77,7 +76,7 @@
 #include <string.h>
 
 typedef struct ParserContext {
-  Query *ssql;
+  Query* ssql;
   size_t select_length;
   size_t condition_length;
   size_t from_length;
@@ -89,11 +88,11 @@ typedef struct ParserContext {
 } ParserContext;
 
 //获取子串
-char *substr(
-    const char *s, int n1,
+char* substr(
+    const char* s, int n1,
     int n2) /*从s中提取下标为n1~n2的字符组成一个新字符串，然后返回这个新串的首地址*/
 {
-  char *sp = malloc(sizeof(char) * (n2 - n1 + 2));
+  char* sp = malloc(sizeof(char) * (n2 - n1 + 2));
   int i, j = 0;
   for (i = n1; i <= n2; i++) {
     sp[j++] = s[i];
@@ -102,8 +101,8 @@ char *substr(
   return sp;
 }
 
-void yyerror(yyscan_t scanner, const char *str) {
-  ParserContext *context = (ParserContext *)(yyget_extra(scanner));
+void yyerror(yyscan_t scanner, const char* str) {
+  ParserContext* context = (ParserContext*)(yyget_extra(scanner));
   query_reset(context->ssql);
   context->ssql->flag = SCF_ERROR;
   context->condition_length = 0;
@@ -114,8 +113,8 @@ void yyerror(yyscan_t scanner, const char *str) {
   printf("parse sql failed. error=%s", str);
 }
 
-ParserContext *get_context(yyscan_t scanner) {
-  return (ParserContext *)yyget_extra(scanner);
+ParserContext* get_context(yyscan_t scanner) {
+  return (ParserContext*)yyget_extra(scanner);
 }
 
 #define CONTEXT get_context(scanner)
@@ -139,7 +138,7 @@ ParserContext *get_context(yyscan_t scanner) {
 #define YY_NULLPTR 0
 #endif
 #else
-#define YY_NULLPTR ((void *)0)
+#define YY_NULLPTR ((void*)0)
 #endif
 #endif
 
@@ -460,13 +459,13 @@ typedef int yy_state_fast_t;
 #ifndef YYMALLOC
 #define YYMALLOC malloc
 #if !defined malloc && !defined EXIT_SUCCESS
-void *malloc(YYSIZE_T); /* INFRINGES ON USER NAME SPACE */
+void* malloc(YYSIZE_T); /* INFRINGES ON USER NAME SPACE */
 #endif
 #endif
 #ifndef YYFREE
 #define YYFREE free
 #if !defined free && !defined EXIT_SUCCESS
-void free(void *); /* INFRINGES ON USER NAME SPACE */
+void free(void*);       /* INFRINGES ON USER NAME SPACE */
 #endif
 #endif
 #endif
@@ -587,11 +586,11 @@ static const yytype_int16 yyrline[] = {
 #if YYDEBUG || 0
 /* The user-facing name of the symbol whose (internal) number is
    YYSYMBOL.  No bounds checking.  */
-static const char *yysymbol_name(yysymbol_kind_t yysymbol) YY_ATTRIBUTE_UNUSED;
+static const char* yysymbol_name(yysymbol_kind_t yysymbol) YY_ATTRIBUTE_UNUSED;
 
 /* YYTNAME[SYMBOL-NUM] -- String name of the symbol SYMBOL-NUM.
    First, the terminals, then, starting at YYNTOKENS, nonterminals.  */
-static const char *const yytname[] = {"\"end of file\"",
+static const char* const yytname[] = {"\"end of file\"",
                                       "error",
                                       "\"invalid token\"",
                                       "SEMICOLON",
@@ -678,7 +677,7 @@ static const char *const yytname[] = {"\"end of file\"",
                                       "load_data",
                                       YY_NULLPTR};
 
-static const char *yysymbol_name(yysymbol_kind_t yysymbol) {
+static const char* yysymbol_name(yysymbol_kind_t yysymbol) {
   return yytname[yysymbol];
 }
 #endif
@@ -855,10 +854,10 @@ enum { YYENOMEM = -2 };
 | Print this symbol's value on YYO.  |
 `-----------------------------------*/
 
-static void yy_symbol_value_print(FILE *yyo, yysymbol_kind_t yykind,
-                                  YYSTYPE const *const yyvaluep,
-                                  void *scanner) {
-  FILE *yyoutput = yyo;
+static void yy_symbol_value_print(FILE* yyo, yysymbol_kind_t yykind,
+                                  YYSTYPE const* const yyvaluep,
+                                  void* scanner) {
+  FILE* yyoutput = yyo;
   YYUSE(yyoutput);
   YYUSE(scanner);
   if (!yyvaluep) return;
@@ -874,8 +873,8 @@ static void yy_symbol_value_print(FILE *yyo, yysymbol_kind_t yykind,
 | Print this symbol on YYO.  |
 `---------------------------*/
 
-static void yy_symbol_print(FILE *yyo, yysymbol_kind_t yykind,
-                            YYSTYPE const *const yyvaluep, void *scanner) {
+static void yy_symbol_print(FILE* yyo, yysymbol_kind_t yykind,
+                            YYSTYPE const* const yyvaluep, void* scanner) {
   YYFPRINTF(yyo, "%s %s (", yykind < YYNTOKENS ? "token" : "nterm",
             yysymbol_name(yykind));
 
@@ -888,7 +887,7 @@ static void yy_symbol_print(FILE *yyo, yysymbol_kind_t yykind,
 | TOP (included).                                                   |
 `------------------------------------------------------------------*/
 
-static void yy_stack_print(yy_state_t *yybottom, yy_state_t *yytop) {
+static void yy_stack_print(yy_state_t* yybottom, yy_state_t* yytop) {
   YYFPRINTF(stderr, "Stack now");
   for (; yybottom <= yytop; yybottom++) {
     int yybot = *yybottom;
@@ -906,8 +905,8 @@ static void yy_stack_print(yy_state_t *yybottom, yy_state_t *yytop) {
 | Report that the YYRULE is going to be reduced.  |
 `------------------------------------------------*/
 
-static void yy_reduce_print(yy_state_t *yyssp, YYSTYPE *yyvsp, int yyrule,
-                            void *scanner) {
+static void yy_reduce_print(yy_state_t* yyssp, YYSTYPE* yyvsp, int yyrule,
+                            void* scanner) {
   int yylno = yyrline[yyrule];
   int yynrhs = yyr2[yyrule];
   int yyi;
@@ -957,8 +956,8 @@ int yydebug;
 | Release the memory associated to this symbol.  |
 `-----------------------------------------------*/
 
-static void yydestruct(const char *yymsg, yysymbol_kind_t yykind,
-                       YYSTYPE *yyvaluep, void *scanner) {
+static void yydestruct(const char* yymsg, yysymbol_kind_t yykind,
+                       YYSTYPE* yyvaluep, void* scanner) {
   YYUSE(yyvaluep);
   YYUSE(scanner);
   if (!yymsg) yymsg = "Deleting";
@@ -973,7 +972,7 @@ static void yydestruct(const char *yymsg, yysymbol_kind_t yykind,
 | yyparse.  |
 `----------*/
 
-int yyparse(void *scanner) {
+int yyparse(void* scanner) {
   /* Lookahead token kind.  */
   int yychar;
 
@@ -998,13 +997,13 @@ int yyparse(void *scanner) {
 
   /* The state stack: array, bottom, top.  */
   yy_state_t yyssa[YYINITDEPTH];
-  yy_state_t *yyss = yyssa;
-  yy_state_t *yyssp = yyss;
+  yy_state_t* yyss = yyssa;
+  yy_state_t* yyssp = yyss;
 
   /* The semantic value stack: array, bottom, top.  */
   YYSTYPE yyvsa[YYINITDEPTH];
-  YYSTYPE *yyvs = yyvsa;
-  YYSTYPE *yyvsp = yyvs;
+  YYSTYPE* yyvs = yyvsa;
+  YYSTYPE* yyvsp = yyvs;
 
   int yyn;
   /* The return value of yyparse.  */
@@ -1058,8 +1057,8 @@ yysetstate:
       /* Give user a chance to reallocate the stack.  Use copies of
          these so that the &'s don't force the real ones into
          memory.  */
-      yy_state_t *yyss1 = yyss;
-      YYSTYPE *yyvs1 = yyvs;
+      yy_state_t* yyss1 = yyss;
+      YYSTYPE* yyvs1 = yyvs;
 
       /* Each stack pointer address is followed by the size of the
          data in use in that stack, in bytes.  This used to be a
@@ -1077,9 +1076,9 @@ yysetstate:
     if (YYMAXDEPTH < yystacksize) yystacksize = YYMAXDEPTH;
 
     {
-      yy_state_t *yyss1 = yyss;
-      union yyalloc *yyptr =
-          YY_CAST(union yyalloc *,
+      yy_state_t* yyss1 = yyss;
+      union yyalloc* yyptr =
+          YY_CAST(union yyalloc*,
                   YYSTACK_ALLOC(YY_CAST(YYSIZE_T, YYSTACK_BYTES(yystacksize))));
       if (!yyptr) goto yyexhaustedlab;
       YYSTACK_RELOCATE(yyss_alloc, yyss);
@@ -1384,7 +1383,7 @@ yyreduce:
     case 41: /* ID_get: ID  */
 #line 274 "yacc_sql.y"
     {
-      char *temp = (yyvsp[0].string);
+      char* temp = (yyvsp[0].string);
       snprintf(CONTEXT->id, sizeof(CONTEXT->id), "%s", temp);
     }
 #line 1479 "yacc_sql.tab.c"
@@ -1464,7 +1463,7 @@ yyreduce:
 #line 329 "yacc_sql.y"
     {
       CONTEXT->ssql->flag = SCF_UPDATE;  //"update";
-      Value *value = &CONTEXT->values[0];
+      Value* value = &CONTEXT->values[0];
       updates_init(&CONTEXT->ssql->sstr.update, (yyvsp[-6].string),
                    (yyvsp[-4].string), value, CONTEXT->conditions,
                    CONTEXT->condition_length);
@@ -1581,7 +1580,7 @@ yyreduce:
       RelAttr left_attr;
       relation_attr_init(&left_attr, NULL, (yyvsp[-2].string));
 
-      Value *right_value = &CONTEXT->values[CONTEXT->value_length - 1];
+      Value* right_value = &CONTEXT->values[CONTEXT->value_length - 1];
 
       Condition condition;
       condition_init(&condition, CONTEXT->comp, 1, &left_attr, NULL, 0, NULL,
@@ -1604,8 +1603,8 @@ yyreduce:
     case 64: /* condition: value comOp value  */
 #line 432 "yacc_sql.y"
     {
-      Value *left_value = &CONTEXT->values[CONTEXT->value_length - 2];
-      Value *right_value = &CONTEXT->values[CONTEXT->value_length - 1];
+      Value* left_value = &CONTEXT->values[CONTEXT->value_length - 2];
+      Value* right_value = &CONTEXT->values[CONTEXT->value_length - 1];
 
       Condition condition;
       condition_init(&condition, CONTEXT->comp, 0, NULL, left_value, 0, NULL,
@@ -1654,7 +1653,7 @@ yyreduce:
     case 66: /* condition: value comOp ID  */
 #line 472 "yacc_sql.y"
     {
-      Value *left_value = &CONTEXT->values[CONTEXT->value_length - 1];
+      Value* left_value = &CONTEXT->values[CONTEXT->value_length - 1];
       RelAttr right_attr;
       relation_attr_init(&right_attr, NULL, (yyvsp[0].string));
 
@@ -1683,7 +1682,7 @@ yyreduce:
     {
       RelAttr left_attr;
       relation_attr_init(&left_attr, (yyvsp[-4].string), (yyvsp[-2].string));
-      Value *right_value = &CONTEXT->values[CONTEXT->value_length - 1];
+      Value* right_value = &CONTEXT->values[CONTEXT->value_length - 1];
 
       Condition condition;
       condition_init(&condition, CONTEXT->comp, 1, &left_attr, NULL, 0, NULL,
@@ -1707,7 +1706,7 @@ yyreduce:
     case 68: /* condition: value comOp ID DOT ID  */
 #line 515 "yacc_sql.y"
     {
-      Value *left_value = &CONTEXT->values[CONTEXT->value_length - 1];
+      Value* left_value = &CONTEXT->values[CONTEXT->value_length - 1];
 
       RelAttr right_attr;
       relation_attr_init(&right_attr, (yyvsp[-2].string), (yyvsp[0].string));
@@ -1984,9 +1983,9 @@ yyreturn:
 #line 572 "yacc_sql.y"
 
 //_____________________________________________________________________
-extern void scan_string(const char *str, yyscan_t scanner);
+extern void scan_string(const char* str, yyscan_t scanner);
 
-int sql_parse(const char *s, Query *sqls) {
+int sql_parse(const char* s, Query* sqls) {
   ParserContext context;
   memset(&context, 0, sizeof(context));
 

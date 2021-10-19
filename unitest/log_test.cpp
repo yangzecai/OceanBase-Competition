@@ -12,7 +12,6 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include "log_test.h"
-
 #include "common/log/log.h"
 #include "gtest/gtest.h"
 
@@ -26,7 +25,7 @@ LogTest::~LogTest() {
   // Auto-generated destructor stub
 }
 
-int LogTest::init(const std::string &logFile) {
+int LogTest::init(const std::string& logFile) {
   LoggerFactory::init_default(logFile);
 
   g_log->set_rotate_type(LOG_ROTATE_BYSIZE);
@@ -34,8 +33,8 @@ int LogTest::init(const std::string &logFile) {
   return 0;
 }
 
-void *LogTest::log_loop(void *param) {
-  int index = *(int *)param;
+void* LogTest::log_loop(void* param) {
+  int index = *(int*)param;
   int i = 0;
   while (i < 100) {
     i++;
@@ -83,7 +82,7 @@ void testEnableTest() {
 
 TEST(testEnableTest, CheckEnableTest) {}
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   // 分析gtest程序的命令行参数
   testing::InitGoogleTest(&argc, argv);
 

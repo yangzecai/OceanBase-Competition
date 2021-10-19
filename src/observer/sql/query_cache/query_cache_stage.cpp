@@ -11,8 +11,6 @@ See the Mulan PSL v2 for more details. */
 // Created by Longda on 2021/4/13.
 //
 
-#include "query_cache_stage.h"
-
 #include <string.h>
 
 #include <string>
@@ -22,18 +20,19 @@ See the Mulan PSL v2 for more details. */
 #include "common/lang/string.h"
 #include "common/log/log.h"
 #include "common/seda/timer_stage.h"
+#include "query_cache_stage.h"
 
 using namespace common;
 
 //! Constructor
-QueryCacheStage::QueryCacheStage(const char *tag) : Stage(tag) {}
+QueryCacheStage::QueryCacheStage(const char* tag) : Stage(tag) {}
 
 //! Destructor
 QueryCacheStage::~QueryCacheStage() {}
 
 //! Parse properties, instantiate a stage object
-Stage *QueryCacheStage::make_stage(const std::string &tag) {
-  QueryCacheStage *stage = new (std::nothrow) QueryCacheStage(tag.c_str());
+Stage* QueryCacheStage::make_stage(const std::string& tag) {
+  QueryCacheStage* stage = new (std::nothrow) QueryCacheStage(tag.c_str());
   if (stage == nullptr) {
     LOG_ERROR("new QueryCacheStage failed");
     return nullptr;
@@ -59,7 +58,7 @@ bool QueryCacheStage::set_properties() {
 bool QueryCacheStage::initialize() {
   LOG_TRACE("Enter");
 
-  std::list<Stage *>::iterator stgp = next_stage_list_.begin();
+  std::list<Stage*>::iterator stgp = next_stage_list_.begin();
   plan_cache_stage = *(stgp++);
 
   LOG_TRACE("Exit");
@@ -73,7 +72,7 @@ void QueryCacheStage::cleanup() {
   LOG_TRACE("Exit");
 }
 
-void QueryCacheStage::handle_event(StageEvent *event) {
+void QueryCacheStage::handle_event(StageEvent* event) {
   LOG_TRACE("Enter\n");
 
   // Add callback to update query cache
@@ -94,8 +93,8 @@ void QueryCacheStage::handle_event(StageEvent *event) {
   return;
 }
 
-void QueryCacheStage::callback_event(StageEvent *event,
-                                     CallbackContext *context) {
+void QueryCacheStage::callback_event(StageEvent* event,
+                                     CallbackContext* context) {
   LOG_TRACE("Enter\n");
 
   // update data to query cache here

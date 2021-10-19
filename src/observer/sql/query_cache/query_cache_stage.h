@@ -19,22 +19,22 @@ See the Mulan PSL v2 for more details. */
 class QueryCacheStage : public common::Stage {
  public:
   ~QueryCacheStage();
-  static Stage *make_stage(const std::string &tag);
+  static Stage* make_stage(const std::string& tag);
 
  protected:
   // common function
-  QueryCacheStage(const char *tag);
+  QueryCacheStage(const char* tag);
   bool set_properties();
 
   bool initialize();
   void cleanup();
-  void handle_event(common::StageEvent *event);
-  void callback_event(common::StageEvent *event,
-                      common::CallbackContext *context);
+  void handle_event(common::StageEvent* event);
+  void callback_event(common::StageEvent* event,
+                      common::CallbackContext* context);
 
  protected:
  private:
-  Stage *plan_cache_stage = nullptr;
+  Stage* plan_cache_stage = nullptr;
 };
 
 #endif  //__OBSERVER_SQL_QUERY_CACHE_STAGE_H__

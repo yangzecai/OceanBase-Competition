@@ -12,23 +12,22 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include "session/session.h"
-
 #include "storage/trx/trx.h"
 
-Session &Session::default_session() {
+Session& Session::default_session() {
   static Session session;
   return session;
 }
 
-Session::Session(const Session &other) : current_db_(other.current_db_) {}
+Session::Session(const Session& other) : current_db_(other.current_db_) {}
 
 Session::~Session() {
   delete trx_;
   trx_ = nullptr;
 }
 
-const std::string &Session::get_current_db() const { return current_db_; }
-void Session::set_current_db(const std::string &dbname) {
+const std::string& Session::get_current_db() const { return current_db_; }
+void Session::set_current_db(const std::string& dbname) {
   current_db_ = dbname;
 }
 
@@ -40,7 +39,7 @@ bool Session::is_trx_multi_operation_mode() const {
   return trx_multi_operation_mode_;
 }
 
-Trx *Session::current_trx() {
+Trx* Session::current_trx() {
   if (trx_ == nullptr) {
     trx_ = new Trx;
   }

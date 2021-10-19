@@ -27,8 +27,8 @@ See the Mulan PSL v2 for more details. */
 
 //属性结构体
 typedef struct {
-  char *relName;   // relation name (may be NULL) 表名
-  char *attrName;  // attribute name              属性名
+  char* relName;   // relation name (may be NULL) 表名
+  char* attrName;  // attribute name              属性名
 } RelAttr;
 
 typedef enum {
@@ -47,7 +47,7 @@ typedef enum { chars, ints, floats } AttrType;
 typedef struct _Value Value;
 struct _Value {
   AttrType type;  // type of value
-  void *data;     // value
+  void* data;     // value
 };
 
 typedef struct _Condition {
@@ -66,31 +66,31 @@ typedef struct _Condition {
 // struct of select
 typedef struct {
   int nSelAttrs;                  // Length of attrs in Select clause
-  RelAttr *selAttrs[MAX_NUM];     // attrs in Select clause
+  RelAttr* selAttrs[MAX_NUM];     // attrs in Select clause
   int nRelations;                 // Length of relations in Fro clause
-  char *relations[MAX_NUM];       // relations in From clause
+  char* relations[MAX_NUM];       // relations in From clause
   int nConditions;                // Length of conditions in Where clause
   Condition conditions[MAX_NUM];  // conditions in Where clause
 } Selects;
 
 // struct of insert
 typedef struct {
-  char *relName;          // Relation to insert into
+  char* relName;          // Relation to insert into
   int nValues;            // Length of values
   Value values[MAX_NUM];  // values to insert
 } Inserts;
 
 // struct of delete
 typedef struct {
-  char *relName;                  // Relation to delete from
+  char* relName;                  // Relation to delete from
   int nConditions;                // Length of conditions in Where clause
   Condition conditions[MAX_NUM];  // conditions in Where clause
 } Deletes;
 
 // struct of update
 typedef struct {
-  char *relName;                  // Relation to update
-  char *attrName;                 // Attribute to update
+  char* relName;                  // Relation to update
+  char* attrName;                 // Attribute to update
   Value value;                    // update value
   int nConditions;                // Length of conditions in Where clause
   Condition conditions[MAX_NUM];  // conditions in Where clause
@@ -99,32 +99,32 @@ typedef struct {
 // struct of AttrInfo
 typedef struct _AttrInfo AttrInfo;
 struct _AttrInfo {
-  char *attrName;     // Attribute name
+  char* attrName;     // Attribute name
   AttrType attrType;  // Type of attribute
   int attrLength;     // Length of attribute
 };
 // struct of craete_table
 typedef struct {
-  char *relName;                 // Relation name
+  char* relName;                 // Relation name
   int attrCount;                 // Length of attribute
   AttrInfo attributes[MAX_NUM];  // attributes
 } CreateTable;
 
 // struct of drop_table
 typedef struct {
-  char *relName;  // Relation name
+  char* relName;  // Relation name
 } DropTable;
 
 // struct of create_index
 typedef struct {
-  char *indexName;  // Index name
-  char *relName;    // Relation name
-  char *attrName;   // Attribute name
+  char* indexName;  // Index name
+  char* relName;    // Relation name
+  char* attrName;   // Attribute name
 } CreateIndex;
 
 // struct of  drop_index
 typedef struct {
-  char *indexName;  // Index name
+  char* indexName;  // Index name
 
 } DropIndex;
 
@@ -138,7 +138,7 @@ union sqls {
   DropTable drt;
   CreateIndex crei;
   DropIndex dri;
-  char *errors;
+  char* errors;
 };
 
 // struct of flag and sql_struct
@@ -159,7 +159,7 @@ typedef struct {
  * @param dbname
  * @return
  */
-RC createDB(char *dbpath, char *dbname);
+RC createDB(char* dbpath, char* dbname);
 
 /**
  * 删除一个数据库，dbName为要删除的数据库对应文件夹的路径名。
@@ -167,14 +167,14 @@ RC createDB(char *dbpath, char *dbname);
  * @param dbname
  * @return
  */
-RC dropDB(char *dbname);
+RC dropDB(char* dbname);
 
 /**
  * 改变系统的当前数据库为dbName对应的文件夹中的数据库。接口要求同dropDB
  * @param dbname
  * @return
  */
-RC openDB(char *dbname);
+RC openDB(char* dbname);
 
 /**
  * 关闭当前数据库。
@@ -189,7 +189,7 @@ RC closeDB();
  * @param sql
  * @return
  */
-RC execute(char *sql);
+RC execute(char* sql);
 
 /**
  * 创建一个名为relName的表。
@@ -202,14 +202,14 @@ RC execute(char *sql);
  * @param attributes
  * @return
  */
-RC createTable(char *relName, int attrCount, AttrInfo *attributes);
+RC createTable(char* relName, int attrCount, AttrInfo* attributes);
 
 /**
  * 销毁名为relName的表以及在该表上建立的所有索引
  * @param relName
  * @return
  */
-RC dropTable(char *relName);
+RC dropTable(char* relName);
 
 /**
  * 该函数在关系relName的属性attrName上创建名为indexName的索引。
@@ -223,7 +223,7 @@ RC dropTable(char *relName);
  * @param attrName
  * @return
  */
-RC createIndex(char *indexName, char *relName, char *attrName);
+RC createIndex(char* indexName, char* relName, char* attrName);
 
 /**
  * 该函数用来删除名为indexName的索引。
@@ -231,7 +231,7 @@ RC createIndex(char *indexName, char *relName, char *attrName);
  * @param indexName
  * @return
  */
-RC dropIndex(char *indexName);
+RC dropIndex(char* indexName);
 
 /**
  * 该函数用来在relName表中插入具有指定属性值的新元组，
@@ -243,7 +243,7 @@ RC dropIndex(char *indexName);
  * @param values
  * @return
  */
-RC insertRecord(char *relName, int nValues, Value *values);
+RC insertRecord(char* relName, int nValues, Value* values);
 
 /**
  * 该函数用来删除relName表中所有满足指定条件的元组以及该元组对应的索引项。
@@ -254,7 +254,7 @@ RC insertRecord(char *relName, int nValues, Value *values);
  * @param conditions
  * @return
  */
-RC deleteRecord(char *relName, int nConditions, Condition *conditions);
+RC deleteRecord(char* relName, int nConditions, Condition* conditions);
 
 /**
  * 该函数用于更新relName表中所有满足指定条件的元组，
@@ -268,7 +268,7 @@ RC deleteRecord(char *relName, int nConditions, Condition *conditions);
  * @param conditions
  * @return
  */
-RC updateRecord(char *relName, char *attrName, Value *value, int nConditions,
-                Condition *conditions);
+RC updateRecord(char* relName, char* attrName, Value* value, int nConditions,
+                Condition* conditions);
 
 #endif  //__OBSERVER_HANDLER_HANDLER_H__

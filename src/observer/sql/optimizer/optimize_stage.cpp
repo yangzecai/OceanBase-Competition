@@ -11,8 +11,6 @@ See the Mulan PSL v2 for more details. */
 // Created by Longda on 2021/4/13.
 //
 
-#include "optimize_stage.h"
-
 #include <string.h>
 
 #include <string>
@@ -22,18 +20,19 @@ See the Mulan PSL v2 for more details. */
 #include "common/lang/string.h"
 #include "common/log/log.h"
 #include "common/seda/timer_stage.h"
+#include "optimize_stage.h"
 
 using namespace common;
 
 //! Constructor
-OptimizeStage::OptimizeStage(const char *tag) : Stage(tag) {}
+OptimizeStage::OptimizeStage(const char* tag) : Stage(tag) {}
 
 //! Destructor
 OptimizeStage::~OptimizeStage() {}
 
 //! Parse properties, instantiate a stage object
-Stage *OptimizeStage::make_stage(const std::string &tag) {
-  OptimizeStage *stage = new (std::nothrow) OptimizeStage(tag.c_str());
+Stage* OptimizeStage::make_stage(const std::string& tag) {
+  OptimizeStage* stage = new (std::nothrow) OptimizeStage(tag.c_str());
   if (stage == nullptr) {
     LOG_ERROR("new OptimizeStage failed");
     return nullptr;
@@ -59,7 +58,7 @@ bool OptimizeStage::set_properties() {
 bool OptimizeStage::initialize() {
   LOG_TRACE("Enter");
 
-  std::list<Stage *>::iterator stgp = next_stage_list_.begin();
+  std::list<Stage*>::iterator stgp = next_stage_list_.begin();
   execute_stage = *(stgp++);
 
   LOG_TRACE("Exit");
@@ -73,7 +72,7 @@ void OptimizeStage::cleanup() {
   LOG_TRACE("Exit");
 }
 
-void OptimizeStage::handle_event(StageEvent *event) {
+void OptimizeStage::handle_event(StageEvent* event) {
   LOG_TRACE("Enter\n");
 
   // optimize sql plan, here just pass the event to the next stage
@@ -83,8 +82,8 @@ void OptimizeStage::handle_event(StageEvent *event) {
   return;
 }
 
-void OptimizeStage::callback_event(StageEvent *event,
-                                   CallbackContext *context) {
+void OptimizeStage::callback_event(StageEvent* event,
+                                   CallbackContext* context) {
   LOG_TRACE("Enter\n");
 
   LOG_TRACE("Exit\n");

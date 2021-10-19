@@ -24,14 +24,14 @@ struct RID {
   SlotNum slot_num;  // record's slot number
   // bool    valid;    // true means a valid record
 
-  bool operator==(const RID &other) const {
+  bool operator==(const RID& other) const {
     return page_num == other.page_num && slot_num == other.slot_num;
   }
 };
 
 class RidDigest {
  public:
-  size_t operator()(const RID &rid) const {
+  size_t operator()(const RID& rid) const {
     return ((size_t)(rid.page_num) << 32) | rid.slot_num;
   }
 };
@@ -39,23 +39,23 @@ class RidDigest {
 struct Record {
   // bool valid; // false means the record hasn't been load
   RID rid;     // record's rid
-  char *data;  // record's data
+  char* data;  // record's data
 };
 
 class RecordPageHandler {
  public:
   RecordPageHandler();
   ~RecordPageHandler();
-  RC init(DiskBufferPool &buffer_pool, int file_id, PageNum page_num);
-  RC init_empty_page(DiskBufferPool &buffer_pool, int file_id, PageNum page_num,
+  RC init(DiskBufferPool& buffer_pool, int file_id, PageNum page_num);
+  RC init_empty_page(DiskBufferPool& buffer_pool, int file_id, PageNum page_num,
                      int record_size);
   RC deinit();
 
-  RC insert_record(const char *data, RID *rid);
-  RC update_record(const Record *rec);
+  RC insert_record(const char* data, RID* rid);
+  RC update_record(const Record* rec);
 
   template <class RecordUpdater>
-  RC update_record_in_place(const RID *rid, RecordUpdater updater) {
+  RC update_record_in_place(const RID* rid, RecordUpdater updater) {
     Record record;
     RC rc = get_record(rid, &record);
     if (rc != RC::SUCCESS) {
@@ -66,28 +66,28 @@ class RecordPageHandler {
     return rc;
   }
 
-  RC delete_record(const RID *rid);
+  RC delete_record(const RID* rid);
 
-  RC get_record(const RID *rid, Record *rec);
-  RC get_first_record(Record *rec);
-  RC get_next_record(Record *rec);
+  RC get_record(const RID* rid, Record* rec);
+  RC get_first_record(Record* rec);
+  RC get_next_record(Record* rec);
 
   PageNum get_page_num() const;
 
   bool is_full() const;
 
  private:
-  DiskBufferPool *disk_buffer_pool_;
+  DiskBufferPool* disk_buffer_pool_;
   int file_id_;
   BPPageHandle page_handle_;
-  PageHeader *page_header_;
-  char *bitmap_;
+  PageHeader* page_header_;
+  char* bitmap_;
 };
 
 class RecordFileHandler {
  public:
   RecordFileHandler();
-  RC init(DiskBufferPool &buffer_pool, int file_id);
+  RC init(DiskBufferPool& buffer_pool, int file_id);
   void close();
 
   /**
@@ -96,14 +96,14 @@ class RecordFileHandler {
    * @param rec
    * @return
    */
-  RC update_record(const Record *rec);
+  RC update_record(const Record* rec);
 
   /**
    * 从指定文件中删除标识符为rid的记录
    * @param rid
    * @return
    */
-  RC delete_record(const RID *rid);
+  RC delete_record(const RID* rid);
 
   /**
    * 插入一个新的记录到指定文件中，pData为指向新纪录内容的指针，返回该记录的标识符rid
@@ -111,7 +111,7 @@ class RecordFileHandler {
    * @param rid
    * @return
    */
-  RC insert_record(const char *data, int record_size, RID *rid);
+  RC insert_record(const char* data, int record_size, RID* rid);
 
   /**
    * 获取指定文件中标识符为rid的记录内容到rec指向的记录结构中
@@ -119,10 +119,10 @@ class RecordFileHandler {
    * @param rec
    * @return
    */
-  RC get_record(const RID *rid, Record *rec);
+  RC get_record(const RID* rid, Record* rec);
 
   template <class RecordUpdater>  // 改成普通模式, 不使用模板
-  RC update_record_in_place(const RID *rid, RecordUpdater updater) {
+  RC update_record_in_place(const RID* rid, RecordUpdater updater) {
     RC rc = RC::SUCCESS;
     RecordPageHandler page_handler;
     if ((rc != page_handler.init(*disk_buffer_pool_, file_id_,
@@ -134,7 +134,7 @@ class RecordFileHandler {
   }
 
  private:
-  DiskBufferPool *disk_buffer_pool_;
+  DiskBufferPool* disk_buffer_pool_;
   int file_id_;  // 参考DiskBufferPool中的fileId
 
   RecordPageHandler record_page_handler_;  // 目前只有insert record使用
@@ -157,8 +157,8 @@ class RecordFileScanner {
    * @param conditions
    * @return
    */
-  RC open_scan(DiskBufferPool &buffer_pool, int file_id,
-               ConditionFilter *condition_filter);
+  RC open_scan(DiskBufferPool& buffer_pool, int file_id,
+               ConditionFilter* condition_filter);
 
   /**
    * 关闭一个文件扫描，释放相应的资源
@@ -166,7 +166,7 @@ class RecordFileScanner {
    */
   RC close_scan();
 
-  RC get_first_record(Record *rec);
+  RC get_first_record(Record* rec);
 
   /**
    * 获取下一个符合扫描条件的记录。
@@ -175,13 +175,13 @@ class RecordFileScanner {
    * @param rec 上一条记录。如果为NULL，就返回第一条记录
    * @return
    */
-  RC get_next_record(Record *rec);
+  RC get_next_record(Record* rec);
 
  private:
-  DiskBufferPool *disk_buffer_pool_;
+  DiskBufferPool* disk_buffer_pool_;
   int file_id_;  // 参考DiskBufferPool中的fileId
 
-  ConditionFilter *condition_filter_;
+  ConditionFilter* condition_filter_;
   RecordPageHandler record_page_handler_;
 };
 

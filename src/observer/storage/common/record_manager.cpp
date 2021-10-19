@@ -11,7 +11,6 @@ See the Mulan PSL v2 for more details. */
 // Created by Longda on 2021/4/13.
 //
 #include "storage/common/record_manager.h"
-
 #include "common/lang/bitmap.h"
 #include "common/log/log.h"
 #include "condition_filter.h"
@@ -63,7 +62,7 @@ RecordPageHandler::RecordPageHandler()
 
 RecordPageHandler::~RecordPageHandler() { deinit(); }
 
-RC RecordPageHandler::init(DiskBufferPool &buffer_pool, int file_id,
+RC RecordPageHandler::init(DiskBufferPool& buffer_pool, int file_id,
                            PageNum page_num) {
   if (disk_buffer_pool_ != nullptr) {
     LOG_WARN("Disk buffer pool has been opened for file_id:page_num %d:%d.",
@@ -79,7 +78,7 @@ RC RecordPageHandler::init(DiskBufferPool &buffer_pool, int file_id,
     return ret;
   }
 
-  char *data;
+  char* data;
   ret = buffer_pool.get_data(&page_handle_, &data);
   if (ret != RC::SUCCESS) {
     LOG_ERROR("Failed to get page data. ret=%d:%s", ret, strrc(ret));
@@ -89,13 +88,13 @@ RC RecordPageHandler::init(DiskBufferPool &buffer_pool, int file_id,
   disk_buffer_pool_ = &buffer_pool;
   file_id_ = file_id;
 
-  page_header_ = (PageHeader *)(data);
+  page_header_ = (PageHeader*)(data);
   bitmap_ = data + page_fix_size();
   LOG_TRACE("Successfully init file_id:page_num %d:%d.", file_id, page_num);
   return ret;
 }
 
-RC RecordPageHandler::init_empty_page(DiskBufferPool &buffer_pool, int file_id,
+RC RecordPageHandler::init_empty_page(DiskBufferPool& buffer_pool, int file_id,
                                       PageNum page_num, int record_size) {
   RC ret = init(buffer_pool, file_id, page_num);
   if (ret != RC::SUCCESS) {
@@ -143,7 +142,7 @@ RC RecordPageHandler::deinit() {
   return RC::SUCCESS;
 }
 
-RC RecordPageHandler::insert_record(const char *data, RID *rid) {
+RC RecordPageHandler::insert_record(const char* data, RID* rid) {
   if (page_header_->record_num == page_header_->record_capacity) {
     LOG_WARN("Page is full, file_id:page_num %d:%d.", file_id_,
              page_handle_.frame->page.page_num);
@@ -157,7 +156,7 @@ RC RecordPageHandler::insert_record(const char *data, RID *rid) {
   page_header_->record_num++;
 
   // assert index < page_header_->record_capacity
-  char *record_data = page_handle_.frame->page.data +
+  char* record_data = page_handle_.frame->page.data +
                       page_header_->first_record_offset +
                       (index * page_header_->record_size);
   memcpy(record_data, data, page_header_->record_real_size);
@@ -178,7 +177,7 @@ RC RecordPageHandler::insert_record(const char *data, RID *rid) {
   return RC::SUCCESS;
 }
 
-RC RecordPageHandler::update_record(const Record *rec) {
+RC RecordPageHandler::update_record(const Record* rec) {
   RC ret = RC::SUCCESS;
 
   if (rec->rid.slot_num >= page_header_->record_capacity) {
@@ -195,7 +194,7 @@ RC RecordPageHandler::update_record(const Record *rec) {
               rec->rid.slot_num, file_id_, page_handle_.frame->page.page_num);
     ret = RC::RECORD_RECORD_NOT_EXIST;
   } else {
-    char *record_data = page_handle_.frame->page.data +
+    char* record_data = page_handle_.frame->page.data +
                         page_header_->first_record_offset +
                         (rec->rid.slot_num * page_header_->record_size);
     memcpy(record_data, rec->data, page_header_->record_real_size);
@@ -210,7 +209,7 @@ RC RecordPageHandler::update_record(const Record *rec) {
   return ret;
 }
 
-RC RecordPageHandler::delete_record(const RID *rid) {
+RC RecordPageHandler::delete_record(const RID* rid) {
   RC ret = RC::SUCCESS;
 
   if (rid->slot_num >= page_header_->record_capacity) {
@@ -233,7 +232,7 @@ RC RecordPageHandler::delete_record(const RID *rid) {
     }
 
     if (page_header_->record_num == 0) {
-      DiskBufferPool *disk_buffer_pool = disk_buffer_pool_;
+      DiskBufferPool* disk_buffer_pool = disk_buffer_pool_;
       int file_id = file_id_;
       PageNum page_num = get_page_num();
       deinit();
@@ -247,7 +246,7 @@ RC RecordPageHandler::delete_record(const RID *rid) {
   return ret;
 }
 
-RC RecordPageHandler::get_record(const RID *rid, Record *rec) {
+RC RecordPageHandler::get_record(const RID* rid, Record* rec) {
   if (rid->slot_num >= page_header_->record_capacity) {
     LOG_ERROR(
         "Invalid slot_num:%d, exceed page's record capacity, file_id:page_num "
@@ -263,7 +262,7 @@ RC RecordPageHandler::get_record(const RID *rid, Record *rec) {
     return RC::RECORD_RECORD_NOT_EXIST;
   }
 
-  char *data = page_handle_.frame->page.data +
+  char* data = page_handle_.frame->page.data +
                page_header_->first_record_offset +
                (page_header_->record_size * rid->slot_num);
 
@@ -273,12 +272,12 @@ RC RecordPageHandler::get_record(const RID *rid, Record *rec) {
   return RC::SUCCESS;
 }
 
-RC RecordPageHandler::get_first_record(Record *rec) {
+RC RecordPageHandler::get_first_record(Record* rec) {
   rec->rid.slot_num = -1;
   return get_next_record(rec);
 }
 
-RC RecordPageHandler::get_next_record(Record *rec) {
+RC RecordPageHandler::get_next_record(Record* rec) {
   if (rec->rid.slot_num >= page_header_->record_capacity - 1) {
     LOG_ERROR(
         "Invalid slot_num:%d, exceed page's record capacity, file_id:page_num "
@@ -300,7 +299,7 @@ RC RecordPageHandler::get_next_record(Record *rec) {
   rec->rid.slot_num = index;
   // rec->valid = true;
 
-  char *record_data = page_handle_.frame->page.data +
+  char* record_data = page_handle_.frame->page.data +
                       page_header_->first_record_offset +
                       (index * page_header_->record_size);
   rec->data = record_data;
@@ -323,7 +322,7 @@ bool RecordPageHandler::is_full() const {
 RecordFileHandler::RecordFileHandler()
     : disk_buffer_pool_(nullptr), file_id_(-1) {}
 
-RC RecordFileHandler::init(DiskBufferPool &buffer_pool, int file_id) {
+RC RecordFileHandler::init(DiskBufferPool& buffer_pool, int file_id) {
   RC ret = RC::SUCCESS;
 
   if (disk_buffer_pool_ != nullptr) {
@@ -344,8 +343,8 @@ void RecordFileHandler::close() {
   }
 }
 
-RC RecordFileHandler::insert_record(const char *data, int record_size,
-                                    RID *rid) {
+RC RecordFileHandler::insert_record(const char* data, int record_size,
+                                    RID* rid) {
   RC ret = RC::SUCCESS;
   // 找到没有填满的页面
   int page_count = 0;
@@ -426,7 +425,7 @@ RC RecordFileHandler::insert_record(const char *data, int record_size,
   return record_page_handler_.insert_record(data, rid);
 }
 
-RC RecordFileHandler::update_record(const Record *rec) {
+RC RecordFileHandler::update_record(const Record* rec) {
   RC ret = RC::SUCCESS;
 
   RecordPageHandler page_handler;
@@ -440,7 +439,7 @@ RC RecordFileHandler::update_record(const Record *rec) {
   return page_handler.update_record(rec);
 }
 
-RC RecordFileHandler::delete_record(const RID *rid) {
+RC RecordFileHandler::delete_record(const RID* rid) {
   RC ret = RC::SUCCESS;
   RecordPageHandler page_handler;
   if ((ret != page_handler.init(*disk_buffer_pool_, file_id_, rid->page_num)) !=
@@ -452,7 +451,7 @@ RC RecordFileHandler::delete_record(const RID *rid) {
   return page_handler.delete_record(rid);
 }
 
-RC RecordFileHandler::get_record(const RID *rid, Record *rec) {
+RC RecordFileHandler::get_record(const RID* rid, Record* rec) {
   // lock?
   RC ret = RC::SUCCESS;
   if (nullptr == rid || nullptr == rec) {
@@ -475,8 +474,8 @@ RC RecordFileHandler::get_record(const RID *rid, Record *rec) {
 RecordFileScanner::RecordFileScanner()
     : disk_buffer_pool_(nullptr), file_id_(-1), condition_filter_(nullptr) {}
 
-RC RecordFileScanner::open_scan(DiskBufferPool &buffer_pool, int file_id,
-                                ConditionFilter *condition_filter) {
+RC RecordFileScanner::open_scan(DiskBufferPool& buffer_pool, int file_id,
+                                ConditionFilter* condition_filter) {
   close_scan();
 
   disk_buffer_pool_ = &buffer_pool;
@@ -498,14 +497,14 @@ RC RecordFileScanner::close_scan() {
   return RC::SUCCESS;
 }
 
-RC RecordFileScanner::get_first_record(Record *rec) {
+RC RecordFileScanner::get_first_record(Record* rec) {
   rec->rid.page_num = 1;  // from 1 参考DiskBufferPool
   rec->rid.slot_num = -1;
   // rec->valid = false;
   return get_next_record(rec);
 }
 
-RC RecordFileScanner::get_next_record(Record *rec) {
+RC RecordFileScanner::get_next_record(Record* rec) {
   if (nullptr == disk_buffer_pool_) {
     LOG_ERROR("Scanner has been closed.");
     return RC::RECORD_CLOSED;

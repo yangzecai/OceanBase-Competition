@@ -36,32 +36,32 @@ typedef struct {
   int keynum;
   PageNum parent;
   PageNum brother;
-  char *keys;
-  RID *rids;
+  char* keys;
+  RID* rids;
 } IndexNode;
 
 typedef struct {
   bool open;
-  IndexHandle *pIXIndexHandle;
+  IndexHandle* pIXIndexHandle;
   CompOp compOp;
-  char *value;
+  char* value;
   BPPageHandle pfPageHandles[BP_BUFFER_SIZE];
   PageNum pnNext;
 } IndexScan;
 
 typedef struct TreeNode {
   int keyNum;
-  char **keys;
-  TreeNode *parent;
-  TreeNode *sibling;
-  TreeNode *firstChild;
+  char** keys;
+  TreeNode* parent;
+  TreeNode* sibling;
+  TreeNode* firstChild;
 } TreeNode;
 
 typedef struct {
   AttrType attrType;
   int attrLength;
   int order;
-  TreeNode *root;
+  TreeNode* root;
 } Tree;
 
 /**
@@ -72,7 +72,7 @@ typedef struct {
  * @param attrLength
  * @return
  */
-RC createIndex(const char *fileName, AttrType attrType, int attrLength);
+RC createIndex(const char* fileName, AttrType attrType, int attrLength);
 
 /**
  * 打开名为fileName的索引文件。
@@ -82,14 +82,14 @@ RC createIndex(const char *fileName, AttrType attrType, int attrLength);
  * @param indexHandle
  * @return
  */
-RC openIndex(const char *fileName, IndexHandle *indexHandle);
+RC openIndex(const char* fileName, IndexHandle* indexHandle);
 
 /**
  * 关闭句柄indexHandle对应的索引文件
  * @param indexHandle
  * @return
  */
-RC closeIndex(IndexHandle *indexHandle);
+RC closeIndex(IndexHandle* indexHandle);
 
 /**
  * 此函数向IndexHandle对应的索引中插入一个索引项。
@@ -100,7 +100,7 @@ RC closeIndex(IndexHandle *indexHandle);
  * @param rid
  * @return
  */
-RC insertEntry(IndexHandle *indexHandle, void *data, const RID *rid);
+RC insertEntry(IndexHandle* indexHandle, void* data, const RID* rid);
 
 /**
  * 从IndexHandle句柄对应的索引中删除一个值为（*pData，rid）的索引项
@@ -109,7 +109,7 @@ RC insertEntry(IndexHandle *indexHandle, void *data, const RID *rid);
  * @param rid
  * @return
  */
-RC deleteEntry(IndexHandle *indexHandle, void *data, const RID *rid);
+RC deleteEntry(IndexHandle* indexHandle, void* data, const RID* rid);
 
 /**
  * 用于在indexHandle对应的索引上初始化一个基于条件的扫描。
@@ -120,8 +120,8 @@ RC deleteEntry(IndexHandle *indexHandle, void *data, const RID *rid);
  * @param value
  * @return
  */
-RC openIndexScan(IndexScan *indexScan, IndexHandle *indexHandle, CompOp compOp,
-                 char *value);
+RC openIndexScan(IndexScan* indexScan, IndexHandle* indexHandle, CompOp compOp,
+                 char* value);
 
 /**
  * 用于继续IndexScan句柄对应的索引扫描，获得下一个满足条件的索引项，
@@ -130,14 +130,14 @@ RC openIndexScan(IndexScan *indexScan, IndexHandle *indexHandle, CompOp compOp,
  * @param rid
  * @return
  */
-RC getNextIndexEntry(IndexScan *indexScan, RID *rid);
+RC getNextIndexEntry(IndexScan* indexScan, RID* rid);
 
 /**
  * 关闭一个索引扫描，释放相应的资源
  * @param indexScan
  * @return
  */
-RC closeIndexScan(IndexScan *indexScan);
+RC closeIndexScan(IndexScan* indexScan);
 
 /**
  * 获取由fileName指定的B+树索引内容，返回指向B+树的指针。
@@ -146,6 +146,6 @@ RC closeIndexScan(IndexScan *indexScan);
  * @param index
  * @return
  */
-RC getIndexTree(char *fileName, Tree *index);
+RC getIndexTree(char* fileName, Tree* index);
 
 #endif  //__OBSERVER_STORAGE_COMMON_INDEX_MANAGER_H_

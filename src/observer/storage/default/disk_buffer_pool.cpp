@@ -10,12 +10,12 @@ See the Mulan PSL v2 for more details. */
 //
 // Created by Longda on 2021/4/13.
 //
-#include "disk_buffer_pool.h"
 
 #include <errno.h>
 #include <string.h>
 
 #include "common/log/log.h"
+#include "disk_buffer_pool.h"
 
 using namespace common;
 
@@ -25,13 +25,13 @@ unsigned long current_time() {
   return tp.tv_sec * 1000 * 1000 * 1000UL + tp.tv_nsec;
 }
 
-DiskBufferPool *theGlobalDiskBufferPool() {
-  static DiskBufferPool *instance = new DiskBufferPool();
+DiskBufferPool* theGlobalDiskBufferPool() {
+  static DiskBufferPool* instance = new DiskBufferPool();
 
   return instance;
 }
 
-RC DiskBufferPool::create_file(const char *file_name) {
+RC DiskBufferPool::create_file(const char* file_name) {
   int fd = open(file_name, O_RDWR | O_CREAT | O_EXCL, S_IREAD | S_IWRITE);
   if (fd < 0) {
     LOG_ERROR("Failed to create %s, due to %s.", file_name, strerror(errno));
@@ -53,12 +53,12 @@ RC DiskBufferPool::create_file(const char *file_name) {
   Page page;
   memset(&page, 0, sizeof(Page));
 
-  BPFileSubHeader *fileSubHeader;
-  fileSubHeader = (BPFileSubHeader *)page.data;
+  BPFileSubHeader* fileSubHeader;
+  fileSubHeader = (BPFileSubHeader*)page.data;
   fileSubHeader->allocated_pages = 1;
   fileSubHeader->page_count = 1;
 
-  char *bitmap = page.data + (int)BP_FILE_SUB_HDR_SIZE;
+  char* bitmap = page.data + (int)BP_FILE_SUB_HDR_SIZE;
   bitmap[0] |= 0x01;
   if (lseek(fd, 0, SEEK_SET) == -1) {
     LOG_ERROR("Failed to seek file %s to position 0, due to %s .", file_name,
@@ -67,7 +67,7 @@ RC DiskBufferPool::create_file(const char *file_name) {
     return RC::IOERR_SEEK;
   }
 
-  if (write(fd, (char *)&page, sizeof(Page)) != sizeof(Page)) {
+  if (write(fd, (char*)&page, sizeof(Page)) != sizeof(Page)) {
     LOG_ERROR("Failed to write header to file %s, due to %s.", file_name,
               strerror(errno));
     close(fd);
@@ -79,7 +79,7 @@ RC DiskBufferPool::create_file(const char *file_name) {
   return RC::SUCCESS;
 }
 
-RC DiskBufferPool::open_file(const char *file_name, int *file_id) {
+RC DiskBufferPool::open_file(const char* file_name, int* file_id) {
   int fd, i;
   // This part isn't gentle, the better method is using LRU queue.
   for (i = 0; i < MAX_OPEN_FILE; i++) {
@@ -107,7 +107,7 @@ RC DiskBufferPool::open_file(const char *file_name, int *file_id) {
   }
   LOG_INFO("Successfully open file %s.", file_name);
 
-  BPFileHandle *file_handle = new (std::nothrow) BPFileHandle();
+  BPFileHandle* file_handle = new (std::nothrow) BPFileHandle();
   if (file_handle == nullptr) {
     LOG_ERROR("Failed to alloc memory of BPFileHandle for %s.", file_name);
     close(fd);
@@ -117,7 +117,7 @@ RC DiskBufferPool::open_file(const char *file_name, int *file_id) {
   RC tmp;
   file_handle->bopen = true;
   int file_name_len = strlen(file_name) + 1;
-  char *cloned_file_name = new char[file_name_len];
+  char* cloned_file_name = new char[file_name_len];
   snprintf(cloned_file_name, file_name_len, "%s", file_name);
   cloned_file_name[file_name_len - 1] = '\0';
   file_handle->file_name = cloned_file_name;
@@ -143,7 +143,7 @@ RC DiskBufferPool::open_file(const char *file_name, int *file_id) {
 
   file_handle->hdr_page = &(file_handle->hdr_frame->page);
   file_handle->bitmap = file_handle->hdr_page->data + BP_FILE_SUB_HDR_SIZE;
-  file_handle->file_sub_header = (BPFileSubHeader *)file_handle->hdr_page->data;
+  file_handle->file_sub_header = (BPFileSubHeader*)file_handle->hdr_page->data;
   open_list_[i - 1] = file_handle;
   *file_id = i - 1;
   LOG_INFO("Successfully open %s. file_id=%d, hdr_frame=%p", file_name,
@@ -158,7 +158,7 @@ RC DiskBufferPool::close_file(int file_id) {
     return tmp;
   }
 
-  BPFileHandle *file_handle = open_list_[file_id];
+  BPFileHandle* file_handle = open_list_[file_id];
   file_handle->hdr_frame->pin_count--;
   if ((tmp = force_all_pages(file_handle)) != RC::SUCCESS) {
     file_handle->hdr_frame->pin_count++;
@@ -179,7 +179,7 @@ RC DiskBufferPool::close_file(int file_id) {
 }
 
 RC DiskBufferPool::get_this_page(int file_id, PageNum page_num,
-                                 BPPageHandle *page_handle) {
+                                 BPPageHandle* page_handle) {
   RC tmp;
   if ((tmp = check_file_id(file_id)) != RC::SUCCESS) {
     LOG_ERROR("Failed to load page %d, due to invalid fileId %d", page_num,
@@ -187,7 +187,7 @@ RC DiskBufferPool::get_this_page(int file_id, PageNum page_num,
     return tmp;
   }
 
-  BPFileHandle *file_handle = open_list_[file_id];
+  BPFileHandle* file_handle = open_list_[file_id];
   if ((tmp = check_page_num(page_num, file_handle)) != RC::SUCCESS) {
     LOG_ERROR("Failed to load page %s:%d, due to invalid pageNum.",
               file_handle->file_name, page_num);
@@ -230,14 +230,14 @@ RC DiskBufferPool::get_this_page(int file_id, PageNum page_num,
   return RC::SUCCESS;
 }
 
-RC DiskBufferPool::allocate_page(int file_id, BPPageHandle *page_handle) {
+RC DiskBufferPool::allocate_page(int file_id, BPPageHandle* page_handle) {
   RC tmp;
   if ((tmp = check_file_id(file_id)) != RC::SUCCESS) {
     LOG_ERROR("Failed to alloc page, due to invalid fileId %d", file_id);
     return tmp;
   }
 
-  BPFileHandle *file_handle = open_list_[file_id];
+  BPFileHandle* file_handle = open_list_[file_id];
 
   int byte = 0, bit = 0;
   if ((file_handle->file_sub_header->allocated_pages) <
@@ -288,24 +288,24 @@ RC DiskBufferPool::allocate_page(int file_id, BPPageHandle *page_handle) {
   return RC::SUCCESS;
 }
 
-RC DiskBufferPool::get_page_num(BPPageHandle *page_handle, PageNum *page_num) {
+RC DiskBufferPool::get_page_num(BPPageHandle* page_handle, PageNum* page_num) {
   if (!page_handle->open) return RC::BUFFERPOOL_CLOSED;
   *page_num = page_handle->frame->page.page_num;
   return RC::SUCCESS;
 }
 
-RC DiskBufferPool::get_data(BPPageHandle *page_handle, char **data) {
+RC DiskBufferPool::get_data(BPPageHandle* page_handle, char** data) {
   if (!page_handle->open) return RC::BUFFERPOOL_CLOSED;
   *data = page_handle->frame->page.data;
   return RC::SUCCESS;
 }
 
-RC DiskBufferPool::mark_dirty(BPPageHandle *page_handle) {
+RC DiskBufferPool::mark_dirty(BPPageHandle* page_handle) {
   page_handle->frame->dirty = true;
   return RC::SUCCESS;
 }
 
-RC DiskBufferPool::unpin_page(BPPageHandle *page_handle) {
+RC DiskBufferPool::unpin_page(BPPageHandle* page_handle) {
   page_handle->open = false;
   page_handle->frame->pin_count--;
   return RC::SUCCESS;
@@ -325,7 +325,7 @@ RC DiskBufferPool::dispose_page(int file_id, PageNum page_num) {
     return rc;
   }
 
-  BPFileHandle *file_handle = open_list_[file_id];
+  BPFileHandle* file_handle = open_list_[file_id];
   if ((rc = check_page_num(page_num, file_handle)) != RC::SUCCESS) {
     LOG_ERROR("Failed to dispose page %s:%d, due to invalid pageNum",
               file_handle->file_name, page_num);
@@ -359,7 +359,7 @@ RC DiskBufferPool::force_page(int file_id, PageNum page_num) {
     LOG_ERROR("Failed to alloc page, due to invalid fileId %d", file_id);
     return rc;
   }
-  BPFileHandle *file_handle = open_list_[file_id];
+  BPFileHandle* file_handle = open_list_[file_id];
   return force_page(file_handle, page_num);
 }
 /**
@@ -369,12 +369,12 @@ RC DiskBufferPool::force_page(int file_id, PageNum page_num) {
  * @param pageNum
  * @return
  */
-RC DiskBufferPool::force_page(BPFileHandle *file_handle, PageNum page_num) {
+RC DiskBufferPool::force_page(BPFileHandle* file_handle, PageNum page_num) {
   int i;
   for (i = 0; i < BP_BUFFER_SIZE; i++) {
     if (!bp_manager_.allocated[i]) continue;
 
-    Frame *frame = &bp_manager_.frame[i];
+    Frame* frame = &bp_manager_.frame[i];
     if (frame->file_desc != file_handle->file_desc) continue;
     if (frame->page.page_num != page_num && page_num != -1) {
       continue;
@@ -407,11 +407,11 @@ RC DiskBufferPool::flush_all_pages(int file_id) {
     return rc;
   }
 
-  BPFileHandle *file_handle = open_list_[file_id];
+  BPFileHandle* file_handle = open_list_[file_id];
   return force_all_pages(file_handle);
 }
 
-RC DiskBufferPool::force_all_pages(BPFileHandle *file_handle) {
+RC DiskBufferPool::force_all_pages(BPFileHandle* file_handle) {
   for (int i = 0; i < BP_BUFFER_SIZE; i++) {
     if (!bp_manager_.allocated[i]) continue;
 
@@ -429,7 +429,7 @@ RC DiskBufferPool::force_all_pages(BPFileHandle *file_handle) {
   return RC::SUCCESS;
 }
 
-RC DiskBufferPool::flush_block(Frame *frame) {
+RC DiskBufferPool::flush_block(Frame* frame) {
   // The better way is use mmap the block into memory,
   // so it is easier to flush data to file.
 
@@ -452,7 +452,7 @@ RC DiskBufferPool::flush_block(Frame *frame) {
   return RC::SUCCESS;
 }
 
-RC DiskBufferPool::allocate_block(Frame **buffer) {
+RC DiskBufferPool::allocate_block(Frame** buffer) {
   // There is one Frame which is free.
   for (int i = 0; i < BP_BUFFER_SIZE; i++) {
     if (!bp_manager_.allocated[i]) {
@@ -495,7 +495,7 @@ RC DiskBufferPool::allocate_block(Frame **buffer) {
   return RC::SUCCESS;
 }
 
-RC DiskBufferPool::dispose_block(Frame *buf) {
+RC DiskBufferPool::dispose_block(Frame* buf) {
   if (buf->pin_count != 0) {
     LOG_WARN("Begin to free page %d of %d, but it's pinned.",
              buf->page.page_num, buf->file_desc);
@@ -528,7 +528,7 @@ RC DiskBufferPool::check_file_id(int file_id) {
   return RC::SUCCESS;
 }
 
-RC DiskBufferPool::get_page_count(int file_id, int *page_count) {
+RC DiskBufferPool::get_page_count(int file_id, int* page_count) {
   RC rc = RC::SUCCESS;
   if ((rc = check_file_id(file_id)) != RC::SUCCESS) {
     return rc;
@@ -537,7 +537,7 @@ RC DiskBufferPool::get_page_count(int file_id, int *page_count) {
   return RC::SUCCESS;
 }
 
-RC DiskBufferPool::check_page_num(PageNum page_num, BPFileHandle *file_handle) {
+RC DiskBufferPool::check_page_num(PageNum page_num, BPFileHandle* file_handle) {
   if (page_num >= file_handle->file_sub_header->page_count) {
     LOG_ERROR("Invalid pageNum:%d, file's name:%s", page_num,
               file_handle->file_name);
@@ -551,8 +551,8 @@ RC DiskBufferPool::check_page_num(PageNum page_num, BPFileHandle *file_handle) {
   return RC::SUCCESS;
 }
 
-RC DiskBufferPool::load_page(PageNum page_num, BPFileHandle *file_handle,
-                             Frame *frame) {
+RC DiskBufferPool::load_page(PageNum page_num, BPFileHandle* file_handle,
+                             Frame* frame) {
   s64_t offset = ((s64_t)page_num) * sizeof(Page);
   if (lseek(file_handle->file_desc, offset, SEEK_SET) == -1) {
     LOG_ERROR("Failed to load page %s:%d, due to failed to lseek:%s.",

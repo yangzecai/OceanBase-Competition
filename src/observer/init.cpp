@@ -12,7 +12,6 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include "init.h"
-
 #include "common/conf/ini.h"
 #include "common/lang/string.h"
 #include "common/log/log.h"
@@ -37,9 +36,9 @@ See the Mulan PSL v2 for more details. */
 
 using namespace common;
 
-bool *&_get_init() {
+bool*& _get_init() {
   static bool util_init = false;
-  static bool *util_init_p = &util_init;
+  static bool* util_init_p = &util_init;
   return util_init_p;
 }
 
@@ -59,8 +58,8 @@ void sig_handler(int sig) {
   return;
 }
 
-int init_log(ProcessParam *process_cfg, Ini &properties) {
-  const std::string &proc_name = process_cfg->get_process_name();
+int init_log(ProcessParam* process_cfg, Ini& properties) {
+  const std::string& proc_name = process_cfg->get_process_name();
   try {
     // we had better alloc one lock to do so, but simplify the logic
     if (g_log) {
@@ -117,7 +116,7 @@ int init_log(ProcessParam *process_cfg, Ini &properties) {
     }
 
     return 0;
-  } catch (std::exception &e) {
+  } catch (std::exception& e) {
     std::cerr << "Failed to init log for " << proc_name << SYS_OUTPUT_FILE_POS
               << SYS_OUTPUT_ERROR << std::endl;
     return errno;
@@ -156,7 +155,7 @@ int prepare_init_seda() {
   return 0;
 }
 
-int init(ProcessParam *process_param) {
+int init(ProcessParam* process_param) {
   if (get_init()) {
     return 0;
   }
@@ -209,8 +208,8 @@ int init(ProcessParam *process_param) {
     return rc;
   }
 
-  LogReporter *log_reporter = get_log_reporter();
-  MetricsRegistry &metrics_registry = get_metrics_registry();
+  LogReporter* log_reporter = get_log_reporter();
+  MetricsRegistry& metrics_registry = get_metrics_registry();
 
   metrics_registry.add_reporter(log_reporter);
 

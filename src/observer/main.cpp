@@ -29,7 +29,7 @@ using namespace common;
 
 #define NET "NET"
 
-static Server *g_server = nullptr;
+static Server* g_server = nullptr;
 
 void usage() {
   std::cout << "Useage " << std::endl;
@@ -42,16 +42,16 @@ void usage() {
   exit(0);
 }
 
-void parse_parameter(int argc, char **argv) {
+void parse_parameter(int argc, char** argv) {
   std::string process_name = get_process_name(argv[0]);
 
-  ProcessParam *process_param = the_process_param();
+  ProcessParam* process_param = the_process_param();
 
   process_param->init_default(process_name);
 
   // Process args
   int opt;
-  extern char *optarg;
+  extern char* optarg;
   while ((opt = getopt(argc, argv, "dp:s:f:o:e:h")) > 0) {
     switch (opt) {
       case 's':
@@ -80,10 +80,10 @@ void parse_parameter(int argc, char **argv) {
   }
 }
 
-Server *init_server() {
+Server* init_server() {
   std::map<std::string, std::string> net_section = get_properties()->get(NET);
 
-  ProcessParam *process_param = the_process_param();
+  ProcessParam* process_param = the_process_param();
 
   long listen_addr = INADDR_ANY;
   long max_connection_num = MAX_CONNECTION_NUM_DEFAULT;
@@ -123,7 +123,7 @@ Server *init_server() {
     server_param.unix_socket_path = process_param->get_unix_socket_path();
   }
 
-  Server *server = new Server(server_param);
+  Server* server = new Server(server_param);
   return server;
 }
 
@@ -132,7 +132,7 @@ Server *init_server() {
  * 那么直接在signal_handler里面处理的话，可能会导致死锁
  * 所以这里单独创建一个线程
  */
-void *quit_thread_func(void *_signum) {
+void* quit_thread_func(void* _signum) {
   intptr_t signum = (intptr_t)_signum;
   LOG_INFO("Receive signal: %ld", signum);
   if (g_server) {
@@ -144,10 +144,10 @@ void *quit_thread_func(void *_signum) {
 }
 void quit_signal_handle(int signum) {
   pthread_t tid;
-  pthread_create(&tid, nullptr, quit_thread_func, (void *)(intptr_t)signum);
+  pthread_create(&tid, nullptr, quit_thread_func, (void*)(intptr_t)signum);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   setSignalHandler(quit_signal_handle);
 
   parse_parameter(argc, argv);

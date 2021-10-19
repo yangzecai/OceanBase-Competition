@@ -28,18 +28,18 @@ class Db {
   Db() = default;
   ~Db();
 
-  RC init(const char *name, const char *dbpath);
+  RC init(const char* name, const char* dbpath);
 
-  RC create_table(const char *table_name, int attribute_count,
-                  const AttrInfo *attributes);
+  RC create_table(const char* table_name, int attribute_count,
+                  const AttrInfo* attributes);
 
-  RC drop_table(const char *table_name);
+  RC drop_table(const char* table_name);
 
-  Table *find_table(const char *table_name) const;
+  Table* find_table(const char* table_name) const;
 
-  const char *name() const;
+  const char* name() const;
 
-  void all_tables(std::vector<std::string> &table_names) const;
+  void all_tables(std::vector<std::string>& table_names) const;
 
   RC sync();
 
@@ -49,7 +49,7 @@ class Db {
  private:
   std::string name_;
   std::string path_;
-  std::unordered_map<std::string, Table *> opened_tables_;
+  std::unordered_map<std::string, Table*> opened_tables_;
 };
 
 #endif  // __OBSERVER_STORAGE_COMMON_DB_H__
