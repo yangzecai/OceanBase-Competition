@@ -223,6 +223,7 @@ RC ExecuteStage::do_select(const char* db, Query* sql,
     SelectExeNode* select_node = new SelectExeNode;
     rc = create_selection_executor(trx, selects, db, table_name, *select_node);
     if (rc != RC::SUCCESS) {
+      session_event->set_response("FAILURE\n");
       delete select_node;
       for (SelectExeNode*& tmp_node : select_nodes) {
         delete tmp_node;
