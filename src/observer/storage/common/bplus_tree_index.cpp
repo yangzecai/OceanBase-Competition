@@ -34,6 +34,18 @@ RC BplusTreeIndex::create(const char* file_name, const IndexMeta& index_meta,
   return rc;
 }
 
+RC BplusTreeIndex::remove() {
+  if (!inited_) {
+    return RC::RECORD_CLOSED;
+  }
+  RC rc = index_handler_.remove();
+  if (rc != RC::SUCCESS) {
+    return rc;
+  }
+  inited_ = false;
+  return rc;
+}
+
 RC BplusTreeIndex::open(const char* file_name, const IndexMeta& index_meta,
                         const FieldMeta& field_meta) {
   if (inited_) {

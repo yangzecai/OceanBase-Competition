@@ -79,6 +79,15 @@ RC DiskBufferPool::create_file(const char* file_name) {
   return RC::SUCCESS;
 }
 
+RC DiskBufferPool::remove_file(int file_id) {
+  std::string file_name = open_list_[file_id]->file_name;
+  close_file(file_id);
+  if (remove(file_name.c_str()) != 0) {
+    return RC::IOERR_DELETE;
+  }
+  return RC::SUCCESS;
+}
+
 RC DiskBufferPool::open_file(const char* file_name, int* file_id) {
   int fd, i;
   // This part isn't gentle, the better method is using LRU queue.
@@ -173,6 +182,7 @@ RC DiskBufferPool::close_file(int file_id) {
     return RC::IOERR_CLOSE;
   }
   open_list_[file_id] = nullptr;
+  // FIXME: file_handle被delete后还解引用？ file_name也没有delete。
   delete (file_handle);
   LOG_INFO("Successfully close file %d:%s.", file_id, file_handle->file_name);
   return RC::SUCCESS;

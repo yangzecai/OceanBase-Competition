@@ -111,6 +111,17 @@ RC BplusTreeHandler::create(const char* file_name, AttrType attr_type,
   return SUCCESS;
 }
 
+RC BplusTreeHandler::remove() {
+  RC rc = RC::SUCCESS;
+  rc = disk_buffer_pool_->remove_file(file_id_);
+  if (rc != SUCCESS) {
+    return rc;
+  }
+  file_id_ = -1;
+  disk_buffer_pool_ = nullptr;
+  return rc;
+}
+
 RC BplusTreeHandler::open(const char* file_name) {
   RC rc;
   BPPageHandle page_handle;

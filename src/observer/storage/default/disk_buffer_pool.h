@@ -118,6 +118,11 @@ class DiskBufferPool {
   RC create_file(const char* file_name);
 
   /**
+   * 删除一个名称为指定文件名的分页文件
+   */
+  RC remove_file(int file_id);
+
+  /**
    * 根据文件名打开一个分页文件，返回文件ID
    * @return
    */

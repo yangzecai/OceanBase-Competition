@@ -35,6 +35,11 @@ Table::~Table() {
   delete record_handler_;
   record_handler_ = nullptr;
 
+  for (auto& index : indexes_) {
+    delete index;
+    index = nullptr;
+  }
+
   if (data_buffer_pool_ != nullptr && file_id_ >= 0) {
     data_buffer_pool_->close_file(file_id_);
     data_buffer_pool_ = nullptr;
@@ -115,34 +120,47 @@ RC Table::create(const char* path, const char* name, const char* base_dir,
 }
 
 RC Table::drop() {
+  RC rc = RC::SUCCESS;
+
   delete record_handler_;
   record_handler_ = nullptr;
 
+  // FIXME: 若没成功删除所有文件，要恢复已删除文件
+  for (Index* index : indexes_) {
+    BplusTreeIndex* bplus_tree_index = dynamic_cast<BplusTreeIndex*>(index);
+    rc = bplus_tree_index->remove();
+    if (rc != SUCCESS) {
+      std::string index_file = index_data_file(base_dir_.c_str(), name(),
+                                               index->index_meta().name());
+      LOG_ERROR("Failed to remove index file. file name=%s",
+                index_file.c_str());
+      return rc;
+    }
+    delete bplus_tree_index;
+    index = nullptr;
+  }
+
   if (data_buffer_pool_ != nullptr && file_id_ >= 0) {
-    sync();
-    data_buffer_pool_->close_file(file_id_);
+    rc = data_buffer_pool_->remove_file(file_id_);
+    if (rc != RC::SUCCESS) {
+      std::string data_file =
+          std::string(base_dir_) + "/" + table_meta_.name() + TABLE_DATA_SUFFIX;
+      LOG_ERROR("Failed to remove data file. file name=%s", data_file.c_str());
+      return rc;
+    }
+    file_id_ = -1;
     data_buffer_pool_ = nullptr;
   }
 
   std::string table_file =
       table_meta_file(base_dir_.c_str(), table_meta_.name());
   if (remove(table_file.c_str()) == -1) {
-    LOG_ERROR("Failed to remove file. file name=%s, errmsg=%s",
+    LOG_ERROR("Failed to remove table file. file name=%s, errmsg=%s",
               table_file.c_str(), strerror(errno));
     return RC::IOERR_DELETE;
   }
 
-  std::string data_file =
-      std::string(base_dir_) + "/" + table_meta_.name() + TABLE_DATA_SUFFIX;
-  if (remove(data_file.c_str()) == -1) {
-    LOG_ERROR("Failed to remove file. file name=%s, errmsg=%s",
-              data_file.c_str(), strerror(errno));
-    return RC::IOERR_DELETE;
-  }
-
-  // FIXME: 删除 index 文件
-
-  return RC::SUCCESS;
+  return rc;
 }
 
 RC Table::open(const char* meta_file, const char* base_dir) {
