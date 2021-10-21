@@ -126,7 +126,7 @@ RC Table::drop() {
   record_handler_ = nullptr;
 
   // FIXME: 若没成功删除所有文件，要恢复已删除文件
-  for (Index* index : indexes_) {
+  for (Index*& index : indexes_) {
     BplusTreeIndex* bplus_tree_index = dynamic_cast<BplusTreeIndex*>(index);
     rc = bplus_tree_index->remove();
     if (rc != SUCCESS) {
