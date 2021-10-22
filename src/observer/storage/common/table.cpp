@@ -609,6 +609,19 @@ RC Table::create_index(Trx* trx, const char* index_name,
   return rc;
 }
 
+RC Table::check_attribute_valid(const char* attribute_name) const {
+  if (nullptr == attribute_name) {
+    LOG_ERROR("Invalid argument. attribute_name=%p", attribute_name);
+    return RC::INVALID_ARGUMENT;
+  }
+  for (int i = table_meta_.sys_field_num(); i < table_meta_.field_num(); ++i) {
+    if (strcmp(table_meta_.field(i)->name(), attribute_name) == 0) {
+      return RC::SUCCESS;
+    }
+  }
+  return RC::SCHEMA_FIELD_MISSING;
+}
+
 RC Table::check_attribute_value_valid(const char* attribute_name,
                                       const Value* value) const {
   if (nullptr == attribute_name || nullptr == value) {

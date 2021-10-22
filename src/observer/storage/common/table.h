@@ -72,6 +72,10 @@ class Table {
 
   RC sync();
 
+  RC check_attribute_valid(const char* attribute_name) const;
+  RC check_attribute_value_valid(const char* attribute_name,
+                                 const Value* value) const;
+
  public:
   RC commit_insert(Trx* trx, const RID& rid);
   RC commit_delete(Trx* trx, const RID& rid);
@@ -90,9 +94,6 @@ class Table {
   RC insert_record(Trx* trx, Record* record);
   RC delete_record(Trx* trx, Record* record);
   RC update_record(Trx* trx, Record* record);
-
-  RC check_attribute_value_valid(const char* attribute_name,
-                                 const Value* value) const;
 
  private:
   friend class RecordUpdater;
