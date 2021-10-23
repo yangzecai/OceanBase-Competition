@@ -213,6 +213,36 @@ void TupleRecordConverter::add_record(const char* record) {
         const char* s = record + field_meta->offset();  // 现在当做Cstring来处理
         tuple.add(s, strlen(s));
       } break;
+      case DATES: {
+        int value = *(int*)(record + field_meta->offset());
+        auto t = static_cast<time_t>(value);
+        int year, month, day;
+        tm* time = gmtime(&t);
+
+        year = time->tm_year + 1900;
+        month = time->tm_mon + 1;
+        day = time->tm_mday;
+
+        char year_str[5], month_str[3], day_str[3];
+        sprintf(year_str, "%d", year);
+        sprintf(month_str, "%d", month);
+        sprintf(day_str, "%d", day);
+
+        if (month_str[1] == '\0') {
+          month_str[2] = '\0';
+          month_str[1] = month_str[0];
+          month_str[0] = '0';
+        }
+        if (day_str[1] == '\0') {
+          day_str[2] = '\0';
+          day_str[1] = day_str[0];
+          day_str[0] = '0';
+        }
+
+        char s[20];
+        sprintf(s, "%s-%s-%s", year_str, month_str, day_str);
+        tuple.add(s, strlen(s));
+      } break;
       default: {
         LOG_PANIC("Unsupported field type. type=%d", field_meta->type());
       }

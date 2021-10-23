@@ -11,10 +11,14 @@ See the Mulan PSL v2 for more details. */
 // Created by Longda on 2021/4/13.
 //
 
+#include <time.h>
+
 #include <mutex>
+#include <regex>
 
 #include "common/log/log.h"
 #include "rc.h"
+#include "session/session.h"
 #include "sql/parser/parse.h"
 
 RC parse(char* st, Query* sqln);
@@ -50,8 +54,78 @@ void value_init_float(Value* value, float v) {
   memcpy(value->data, &v, sizeof(v));
 }
 void value_init_string(Value* value, const char* v) {
-  value->type = CHARS;
-  value->data = strdup(v);
+  std::regex pattern("[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}");
+  std::string text = v;
+  if (std::regex_match(text, pattern)) {
+    value_init_date(value, v);
+  } else {
+    value->type = CHARS;
+    value->data = strdup(v);
+  }
+}
+void value_init_date(Value* value, const char* v) {
+  tm time = {0};
+  int year, month, day;
+  sscanf(v, "%d-%d-%d", &year, &month, &day);
+
+  bool j_year, j_month, j_day;
+  if (year > 0) {
+    j_year = true;
+  } else {
+    j_year = false;
+  }
+
+  if (month >= 1 && month <= 12) {
+    j_month = true;
+  } else {
+    j_month = false;
+  }
+
+  if (month == 4 || month == 6 || month == 9 || month == 11) {
+    if (day >= 1 && day <= 30) {
+      j_day = true;
+    } else {
+      j_day = false;
+    }
+  }
+  if (month == 2) {
+    if ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)) {
+      if (day >= 1 && day <= 29) {
+        j_day = true;
+      } else {
+        j_day = false;
+      }
+    } else {
+      if (day >= 1 && day <= 28) {
+        j_day = true;
+      } else {
+        j_day = false;
+      }
+    }
+  } else {
+    if (day >= 1 && day <= 31) {
+      j_day = true;
+    } else {
+      j_day = false;
+    }
+  }
+  if (!(j_year && j_month && j_day)) {
+    value->valid = false;
+  } else {
+    value->valid = true;
+  }
+
+  time.tm_year = year - 1900;
+  time.tm_mon = month - 1;
+  time.tm_mday = day;
+  time.tm_hour = 20;
+  time.tm_isdst = 0;
+
+  int t = static_cast<int>(mktime(&time));
+
+  value->type = DATES;
+  value->data = malloc(sizeof(t));
+  memcpy(value->data, &t, sizeof(t));
 }
 void value_destroy(Value* value) {
   value->type = UNDEFINED;

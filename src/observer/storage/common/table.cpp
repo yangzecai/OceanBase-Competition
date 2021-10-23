@@ -326,6 +326,10 @@ RC Table::make_record(int value_num, const Value* values, char*& record_out) {
   for (int i = 0; i < value_num; i++) {
     const FieldMeta* field = table_meta_.field(i + normal_field_start_index);
     const Value& value = values[i];
+    if (value.type == DATES && !value.valid) {
+      LOG_ERROR("Invalid %d value", value.type);
+      return RC::INVALID_ARGUMENT;
+    }
     if (field->type() != value.type) {
       LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
                 field->name(), field->type(), value.type);
