@@ -46,7 +46,6 @@ typedef enum { UNDEFINED, CHARS, INTS, FLOATS, DATES } AttrType;
 typedef struct _Value {
   AttrType type;  // type of value
   void* data;     // value
-  bool valid : true;
 } Value;
 
 typedef struct _Condition {

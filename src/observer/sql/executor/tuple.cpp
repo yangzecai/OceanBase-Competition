@@ -239,7 +239,7 @@ void TupleRecordConverter::add_record(const char* record) {
           day_str[0] = '0';
         }
 
-        char s[20];
+        char s[16];
         sprintf(s, "%s-%s-%s", year_str, month_str, day_str);
         tuple.add(s, strlen(s));
       } break;
