@@ -223,24 +223,8 @@ void TupleRecordConverter::add_record(const char* record) {
         month = time->tm_mon + 1;
         day = time->tm_mday;
 
-        char year_str[5], month_str[3], day_str[3];
-        sprintf(year_str, "%d", year);
-        sprintf(month_str, "%d", month);
-        sprintf(day_str, "%d", day);
-
-        if (month_str[1] == '\0') {
-          month_str[2] = '\0';
-          month_str[1] = month_str[0];
-          month_str[0] = '0';
-        }
-        if (day_str[1] == '\0') {
-          day_str[2] = '\0';
-          day_str[1] = day_str[0];
-          day_str[0] = '0';
-        }
-
         char s[16];
-        sprintf(s, "%s-%s-%s", year_str, month_str, day_str);
+        sprintf(s, "%04d-%02d-%02d", year, month, day);
         tuple.add(s, strlen(s));
       } break;
       default: {
