@@ -43,6 +43,9 @@ class Table {
   RC create(const char* path, const char* name, const char* base_dir,
             int attribute_count, const AttrInfo attributes[]);
 
+  /**
+   * 删除当前表
+   */
   RC drop();
 
   /**
@@ -54,8 +57,7 @@ class Table {
 
   RC insert_record(Trx* trx, int value_num, const Value* values);
   RC update_record(Trx* trx, const char* attribute_name, const Value* value,
-                   int condition_num, const Condition conditions[],
-                   int* updated_count);
+                   ConditionFilter* filter, int* updated_count);
   RC delete_record(Trx* trx, ConditionFilter* filter, int* deleted_count);
 
   RC scan_record(Trx* trx, ConditionFilter* filter, int limit, void* context,
@@ -69,6 +71,10 @@ class Table {
   const TableMeta& table_meta() const;
 
   RC sync();
+
+  RC check_attribute_valid(const char* attribute_name) const;
+  RC check_attribute_value_valid(const char* attribute_name,
+                                 const Value* value) const;
 
  public:
   RC commit_insert(Trx* trx, const RID& rid);
@@ -87,6 +93,7 @@ class Table {
 
   RC insert_record(Trx* trx, Record* record);
   RC delete_record(Trx* trx, Record* record);
+  RC update_record(Trx* trx, Record* record);
 
  private:
   friend class RecordUpdater;
@@ -95,6 +102,7 @@ class Table {
   RC insert_entry_of_indexes(const char* record, const RID& rid);
   RC delete_entry_of_indexes(const char* record, const RID& rid,
                              bool error_on_not_exists);
+  RC update_entry_of_indexes(const char* record, const RID& rid);
 
  private:
   RC init_record_handler(const char* base_dir);

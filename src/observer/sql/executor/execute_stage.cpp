@@ -207,6 +207,9 @@ void end_trx_if_need(Session* session, Trx* trx, bool all_right) {
   }
 }
 
+RC check_multi_table_select_condition_valid(const char* db,
+                                            const Selects& selects);
+
 // 这里没有对输入的某些信息做合法性校验，比如查询的列名、where条件中的列名等，没有做必要的合法性校验
 // 需要补充上这一部分.
 // 校验部分也可以放在resolve，不过跟execution放一起也没有关系
@@ -216,6 +219,12 @@ RC ExecuteStage::do_select(const char* db, Query* sql,
   Session* session = session_event->get_client()->session;
   Trx* trx = session->current_trx();
   const Selects& selects = sql->sstr.selection;
+
+  rc = check_multi_table_select_condition_valid(db, selects);
+  if (rc != RC::SUCCESS) {
+    session_event->set_response("FAILURE\n");
+    return rc;
+  }
   // 把所有的表和只跟这张表关联的condition都拿出来，生成最底层的select 执行节点
   std::vector<SelectExeNode*> select_nodes;
   for (size_t i = 0; i < selects.relation_num; i++) {
@@ -257,6 +266,9 @@ RC ExecuteStage::do_select(const char* db, Query* sql,
 
   std::stringstream ss;
   if (tuple_sets.size() > 1) {
+    for (auto& tuple : tuple_sets) {
+      tuple.print(ss);
+    }
     // 本次查询了多张表，需要做join操作
   } else {
     // 当前只查询一张表，直接返回结果即可
@@ -355,4 +367,87 @@ RC create_selection_executor(Trx* trx, const Selects& selects, const char* db,
 
   return select_node.init(trx, table, std::move(schema),
                           std::move(condition_filters));
+}
+
+// 检查多表查询的condition
+RC check_multi_table_select_condition_valid(const char* db,
+                                            const Selects& selects) {
+  if (selects.relation_num == 1) {
+    return RC::SUCCESS;
+  }
+
+  std::map<std::string, const Table*> tables;
+  for (size_t i = 0; i < selects.relation_num; ++i) {
+    tables[std::string(selects.relations[i])] =
+        DefaultHandler::get_default().find_table(db, selects.relations[i]);
+  }
+
+  for (size_t i = 0; i < selects.condition_num; ++i) {
+    const Condition& condition = selects.conditions[i];
+
+    if (!condition.left_is_attr && !condition.right_is_attr) {
+      // FIXME: 两边value是合法的
+    } else if (condition.left_is_attr && !condition.right_is_attr) {
+      if (condition.left_attr.relation_name == nullptr) {
+        return RC::SCHEMA_TABLE_NAME_ILLEGAL;
+      }
+
+      std::string left_table_name =
+          std::string(condition.left_attr.relation_name);
+      if (tables.find(left_table_name) == tables.end()) {
+        return RC::SCHEMA_FIELD_MISSING;
+      }
+      const Table* left_table = tables[left_table_name];
+      // FIXME: 这里可能忽略了不同value类型之间转换
+      if (RC::SUCCESS !=
+          left_table->check_attribute_value_valid(
+              condition.left_attr.attribute_name, &condition.right_value)) {
+        return RC::SCHEMA_FIELD_MISSING;
+      }
+
+    } else if (!condition.left_is_attr && condition.right_is_attr) {
+      if (condition.right_attr.relation_name == nullptr) {
+        return RC::SCHEMA_TABLE_NAME_ILLEGAL;
+      }
+
+      std::string right_table_name =
+          std::string(condition.right_attr.relation_name);
+      if (tables.find(right_table_name) == tables.end()) {
+        return RC::SCHEMA_FIELD_MISSING;
+      }
+      const Table* right_table = tables[right_table_name];
+      // FIXME: 这里可能忽略了不同value类型之间转换
+      if (RC::SUCCESS !=
+          right_table->check_attribute_value_valid(
+              condition.right_attr.attribute_name, &condition.left_value)) {
+        return RC::SCHEMA_FIELD_MISSING;
+      }
+
+    } else if (condition.left_is_attr && condition.right_is_attr) {
+      if (condition.left_attr.relation_name == nullptr ||
+          condition.right_attr.relation_name == nullptr) {
+        return RC::SCHEMA_TABLE_NAME_ILLEGAL;
+      }
+
+      std::string left_table_name =
+          std::string(condition.left_attr.relation_name);
+      std::string right_table_name =
+          std::string(condition.right_attr.relation_name);
+      if (tables.find(left_table_name) == tables.end() ||
+          tables.find(right_table_name) == tables.end()) {
+        return RC::SCHEMA_FIELD_MISSING;
+      }
+
+      const Table* left_table = tables[left_table_name];
+      const Table* right_table = tables[right_table_name];
+      if ((RC::SUCCESS != left_table->check_attribute_valid(
+                              condition.left_attr.attribute_name)) ||
+          (RC::SUCCESS != right_table->check_attribute_valid(
+                              condition.right_attr.attribute_name))) {
+        return RC::SCHEMA_FIELD_MISSING;
+      }
+    }
+  }
+
+  return RC::SUCCESS;
 }

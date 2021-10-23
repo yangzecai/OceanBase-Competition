@@ -613,10 +613,109 @@ RC Table::create_index(Trx* trx, const char* index_name,
   return rc;
 }
 
+RC Table::check_attribute_valid(const char* attribute_name) const {
+  if (nullptr == attribute_name) {
+    LOG_ERROR("Invalid argument. attribute_name=%p", attribute_name);
+    return RC::INVALID_ARGUMENT;
+  }
+  for (int i = table_meta_.sys_field_num(); i < table_meta_.field_num(); ++i) {
+    if (strcmp(table_meta_.field(i)->name(), attribute_name) == 0) {
+      return RC::SUCCESS;
+    }
+  }
+  return RC::SCHEMA_FIELD_MISSING;
+}
+
+RC Table::check_attribute_value_valid(const char* attribute_name,
+                                      const Value* value) const {
+  if (nullptr == attribute_name || nullptr == value) {
+    LOG_ERROR("Invalid argument. attribute_name=%p, value=%p", attribute_name,
+              value);
+    return RC::INVALID_ARGUMENT;
+  }
+
+  for (int i = table_meta_.sys_field_num(); i < table_meta_.field_num(); ++i) {
+    const FieldMeta* field = table_meta_.field(i);
+    if (strcmp(field->name(), attribute_name) == 0 &&
+        value->type == field->type()) {
+      return RC::SUCCESS;
+    }
+  }
+  return RC::SCHEMA_FIELD_MISSING;
+}
+
+class RecordUpdater {
+ public:
+  RecordUpdater(Table& table, Trx* trx, const char* attribute_name,
+                const Value* value)
+      : table_(table), trx_(trx), offset_(0), len_(0), data_(value->data) {
+    for (int i = table.table_meta_.sys_field_num();
+         i < table.table_meta_.field_num(); ++i) {
+      if (strcmp(table.table_meta_.field(i)->name(), attribute_name) == 0) {
+        offset_ = table.table_meta_.field(i)->offset();
+        len_ = table.table_meta_.field(i)->len();
+        break;
+      }
+    }
+  }
+
+  RC update_record(Record* record) {
+    RC rc = RC::SUCCESS;
+    memcpy(record->data + offset_, data_, len_);
+    rc = table_.update_record(trx_, record);
+    if (rc == RC::SUCCESS) {
+      updated_count_++;
+    }
+    return rc;
+  }
+
+  int updated_count() const { return updated_count_; }
+
+ private:
+  Table& table_;
+  Trx* trx_;
+  int updated_count_ = 0;
+  int offset_;
+  int len_;
+  void* data_;
+};
+
+static RC record_reader_update_adapter(Record* record, void* context) {
+  RecordUpdater& record_updater = *(RecordUpdater*)context;
+  return record_updater.update_record(record);
+}
+
 RC Table::update_record(Trx* trx, const char* attribute_name,
-                        const Value* value, int condition_num,
-                        const Condition conditions[], int* updated_count) {
-  return RC::GENERIC_ERROR;
+                        const Value* value, ConditionFilter* filter,
+                        int* updated_count) {
+  RC rc = check_attribute_value_valid(attribute_name, value);
+  if (rc != SUCCESS) {
+    return rc;
+  }
+
+  RecordUpdater updater(*this, trx, attribute_name, value);
+  rc = scan_record(trx, filter, -1, &updater, record_reader_update_adapter);
+  if (updated_count != nullptr) {
+    *updated_count = updater.updated_count();
+  }
+  return rc;
+}
+
+RC Table::update_record(Trx* trx, Record* record) {
+  RC rc = RC::SUCCESS;
+  if (trx != nullptr) {
+    // rc = trx->delete_record(this, record);
+    // FIXME: 事务
+  } else {
+    rc = update_entry_of_indexes(record->data, record->rid);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to update indexes of record (rid=%d.%d). rc=%d:%s",
+                record->rid.page_num, record->rid.slot_num, rc, strrc(rc));
+    } else {
+      rc = record_handler_->update_record(record);
+    }
+  }
+  return rc;
 }
 
 class RecordDeleter {
@@ -723,6 +822,22 @@ RC Table::delete_entry_of_indexes(const char* record, const RID& rid,
       if (rc != RC::RECORD_INVALID_KEY || !error_on_not_exists) {
         break;
       }
+    }
+  }
+  return rc;
+}
+
+RC Table::update_entry_of_indexes(const char* record, const RID& rid) {
+  RC rc = RC::SUCCESS;
+  for (Index* index : indexes_) {
+    // FIXME: 可能很有问题
+    rc = index->delete_entry(record, &rid);
+    if (rc != RC::SUCCESS) {
+      break;
+    }
+    rc = index->insert_entry(record, &rid);
+    if (rc != RC::SUCCESS) {
+      break;
     }
   }
   return rc;
