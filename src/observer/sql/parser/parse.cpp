@@ -110,9 +110,9 @@ void value_init_date(Value* value, const char* v) {
     }
   }
   if (!(j_year && j_month && j_day)) {
-    value->valid = false;
+    value->type = CHARS;
   } else {
-    value->valid = true;
+    value->type = DATES;
   }
 
   time.tm_year = year - 1900;
@@ -123,7 +123,6 @@ void value_init_date(Value* value, const char* v) {
 
   int t = static_cast<int>(mktime(&time));
 
-  value->type = DATES;
   value->data = malloc(sizeof(t));
   memcpy(value->data, &t, sizeof(t));
 }
