@@ -36,7 +36,7 @@ RC TupleSetsJoiner::init(const char* db, const Selects* selects,
   }
 
   for (const TupleField& tuple_field : joined_tuple_set_.schema().fields()) {
-    for (int i = 0; i < selects_->relation_num; ++i) {
+    for (size_t i = 0; i < selects_->relation_num; ++i) {
       if (strcmp(tuple_field.table_name(), selects_->relations[i]) == 0) {
         tuple_sets_scan_order_.push_back(i);
       }
@@ -69,8 +69,8 @@ void TupleSetsJoiner::make_tuples_dfs(std::vector<int>& tuple_indexes) {
 std::vector<const Tuple*> TupleSetsJoiner::load_tuples(
     const std::vector<int>& tuple_indexes) const {
   std::vector<const Tuple*> tuples(tuple_indexes.size());
-  for (int i = 0; i < tuple_indexes.size(); ++i) {
-    int true_tuple_index = tuple_indexes.size() - i - 1;
+  for (size_t i = 0; i < tuple_indexes.size(); ++i) {
+    size_t true_tuple_index = tuple_indexes.size() - i - 1;
     tuples[true_tuple_index] =
         &tuple_sets_->at(true_tuple_index).get(tuple_indexes[i]);
   }
@@ -143,6 +143,7 @@ bool TupleSetsJoiner::filter_tuple(
       return false;
     }
   }
+  return true;
 }
 
 RC TupleSetsJoiner::make_schema() {
@@ -258,7 +259,7 @@ RC TupleSetsJoiner::init_conditions() {
       join_condition.comp_op = condition.comp;
       bool left_pass = false, right_pass = false;
 
-      for (int j = 0; j < tuple_sets_->size(); ++j) {
+      for (size_t j = 0; j < tuple_sets_->size(); ++j) {
         const char* table_name =
             tuple_sets_->at(j).schema().field(0).table_name();
 
