@@ -87,8 +87,7 @@ void value_init_date(Value* value, const char* v) {
     } else {
       j_day = false;
     }
-  }
-  if (month == 2) {
+  } else if (month == 2) {
     if ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)) {
       if (day >= 1 && day <= 29) {
         j_day = true;
