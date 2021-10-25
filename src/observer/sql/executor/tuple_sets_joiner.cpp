@@ -7,7 +7,6 @@
 
 TupleSetsJoiner::TupleSetsJoiner() {}
 
-// FIXME: 此处只有condition校验，其他需要外部保证
 RC TupleSetsJoiner::init(const char* db, const Selects* selects,
                          const std::vector<TupleSet>& tuple_sets) {
   db_ = db;
@@ -36,9 +35,12 @@ RC TupleSetsJoiner::init(const char* db, const Selects* selects,
   }
 
   for (const TupleField& tuple_field : joined_tuple_set_.schema().fields()) {
+    const char* table_name = tuple_field.table_name();
     for (size_t i = 0; i < selects_->relation_num; ++i) {
-      if (strcmp(tuple_field.table_name(), selects_->relations[i]) == 0) {
-        tuple_sets_scan_order_.push_back(i);
+      if (0 == strcmp(table_name, selects_->relations[i])) {
+        size_t field_index = tuple_sets_->at(i).schema().index_of_field(
+            table_name, tuple_field.field_name());
+        field_scan_order_.push_back(std::make_pair(i, field_index));
       }
     }
   }
@@ -93,11 +95,13 @@ void TupleSetsJoiner::scan_tuple_values(
     const std::vector<int>& tuple_indexes,
     std::function<void(std::shared_ptr<TupleValue>)> func) const {
   std::vector<const Tuple*> tuples = load_tuples(tuple_indexes);
-  std::vector<int> tuple_ptrs(tuples.size(), 0);
 
-  for (int tuple_set_index : tuple_sets_scan_order_) {
+  for (std::pair<size_t, size_t> tuple_set_and_field_index :
+       field_scan_order_) {
+    size_t tuple_set_index = tuple_set_and_field_index.first;
+    size_t field_index = tuple_set_and_field_index.second;
     const Tuple* tuple = tuples[tuple_set_index];
-    func(tuple->get_pointer(tuple_ptrs[tuple_set_index]++));
+    func(tuple->get_pointer(field_index));
   }
 }
 
@@ -111,7 +115,7 @@ bool TupleSetsJoiner::filter_tuple(
     const TupleValue& right_value =
         tuples[condition.right_tuple_set_index]->get(
             condition.right_field_index);
-    
+
     // FIXME: 不同类型间比较
     int cmp_result = left_value.compare(right_value);
 
@@ -260,8 +264,7 @@ RC TupleSetsJoiner::init_conditions() {
       bool left_pass = false, right_pass = false;
 
       for (size_t j = 0; j < tuple_sets_->size(); ++j) {
-        const char* table_name =
-            tuple_sets_->at(j).schema().field(0).table_name();
+        const char* table_name = selects_->relations[j];
 
         if (0 == strcmp(table_name, condition.left_attr.relation_name)) {
           int field_index = tuple_sets_->at(j).schema().index_of_field(

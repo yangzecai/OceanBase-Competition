@@ -23,6 +23,9 @@ class TupleSetsJoiner {
           const std::vector<TupleSet>& tuple_sets);
   void execute();
   void print(std::ostream& os) { joined_tuple_set_.print(os); }
+  void swap_from(TupleSet& tuple_set) {
+    tuple_set = std::move(joined_tuple_set_);
+  }
 
  private:
   RC init_conditions();
@@ -45,9 +48,8 @@ class TupleSetsJoiner {
   const Selects* selects_;
   TupleSet joined_tuple_set_;
   std::vector<JoinCondition> join_conditions_;
-  std::map<std::pair<std::string, std::string>, size_t> field_indexes_;
   std::map<std::string, const Table*> tables_;
-  std::vector<int> tuple_sets_scan_order_;
+  std::vector<std::pair<size_t, size_t>> field_scan_order_;
 };
 
 #endif

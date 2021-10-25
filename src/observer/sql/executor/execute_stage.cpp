@@ -37,6 +37,11 @@ using namespace common;
 RC create_selection_executor(Trx* trx, const Selects& selects, const char* db,
                              const char* table_name,
                              SelectExeNode& select_node);
+RC make_single_table_tuple_sets(const char* db, const Selects& selects,
+                                SessionEvent* session_event,
+                                std::vector<TupleSet>& tuple_sets);
+RC make_multi_table_tuple_set(const char* db, const Selects& selects,
+                              SessionEvent* session_event, TupleSet& tuple_set);
 
 //! Constructor
 ExecuteStage::ExecuteStage(const char* tag) : Stage(tag) {}
@@ -218,71 +223,30 @@ RC ExecuteStage::do_select(const char* db, Query* sql,
   Trx* trx = session->current_trx();
   const Selects& selects = sql->sstr.selection;
 
-  // 把所有的表和只跟这张表关联的condition都拿出来，生成最底层的select 执行节点
-  std::vector<SelectExeNode*> select_nodes;
-  for (size_t i = 0; i < selects.relation_num; i++) {
-    const char* table_name = selects.relations[i];
-    SelectExeNode* select_node = new SelectExeNode;
-    rc = create_selection_executor(trx, selects, db, table_name, *select_node);
+  TupleSet tuple_set;
+
+  if (selects.relation_num == 1) {
+    std::vector<TupleSet> tuple_sets;
+    rc = make_single_table_tuple_sets(db, selects, session_event, tuple_sets);
     if (rc != RC::SUCCESS) {
       session_event->set_response("FAILURE\n");
-      delete select_node;
-      for (SelectExeNode*& tmp_node : select_nodes) {
-        delete tmp_node;
-      }
-      end_trx_if_need(session, trx, false);
       return rc;
     }
-    select_nodes.push_back(select_node);
-  }
-
-  if (select_nodes.empty()) {
-    LOG_ERROR("No table given");
-    end_trx_if_need(session, trx, false);
-    return RC::SQL_SYNTAX;
-  }
-
-  std::vector<TupleSet> tuple_sets;
-  for (SelectExeNode*& node : select_nodes) {
-    TupleSet tuple_set;
-    rc = node->execute(tuple_set);
+    tuple_set = std::move(tuple_sets[0]);
+  } else if (selects.relation_num > 1) {
+    rc = make_multi_table_tuple_set(db, selects, session_event, tuple_set);
     if (rc != RC::SUCCESS) {
-      for (SelectExeNode*& tmp_node : select_nodes) {
-        delete tmp_node;
-      }
-      end_trx_if_need(session, trx, false);
+      session_event->set_response("FAILURE\n");
       return rc;
-    } else {
-      tuple_sets.push_back(std::move(tuple_set));
     }
+  } else {
+    LOG_ERROR("should not print this message");
+    session_event->set_response("FAILURE\n");
+    return rc;
   }
 
   std::stringstream ss;
-  if (tuple_sets.size() > 1) {
-    // 本次查询了多张表，需要做join操作
-    TupleSetsJoiner joiner;
-
-    rc = joiner.init(db, &selects, tuple_sets);
-    if (rc != SUCCESS) {
-      session_event->set_response("FAILURE\n");
-      for (SelectExeNode*& tmp_node : select_nodes) {
-        delete tmp_node;
-      }
-      end_trx_if_need(session, trx, true);
-      return rc;
-    }
-
-    joiner.execute();
-    joiner.print(ss);
-    
-  } else {
-    // 当前只查询一张表，直接返回结果即可
-    tuple_sets.front().print(ss);
-  }
-
-  for (SelectExeNode*& tmp_node : select_nodes) {
-    delete tmp_node;
-  }
+  tuple_set.print(ss);
   session_event->set_response(ss.str());
   end_trx_if_need(session, trx, true);
   return rc;
@@ -372,4 +336,89 @@ RC create_selection_executor(Trx* trx, const Selects& selects, const char* db,
 
   return select_node.init(trx, table, std::move(schema),
                           std::move(condition_filters));
+}
+
+RC make_single_table_tuple_sets(const char* db, const Selects& selects,
+                                SessionEvent* session_event,
+                                std::vector<TupleSet>& tuple_sets) {
+  RC rc = RC::SUCCESS;
+  Session* session = session_event->get_client()->session;
+  Trx* trx = session->current_trx();
+
+  std::vector<SelectExeNode*> select_nodes;
+  for (size_t i = 0; i < selects.relation_num; i++) {
+    const char* table_name = selects.relations[i];
+    SelectExeNode* select_node = new SelectExeNode;
+    rc = create_selection_executor(trx, selects, db, table_name, *select_node);
+    if (rc != RC::SUCCESS) {
+      delete select_node;
+      for (SelectExeNode*& tmp_node : select_nodes) {
+        delete tmp_node;
+      }
+      end_trx_if_need(session, trx, false);
+      return rc;
+    }
+    select_nodes.push_back(select_node);
+  }
+
+  if (select_nodes.empty()) {
+    LOG_ERROR("No table given");
+    end_trx_if_need(session, trx, false);
+    return RC::SQL_SYNTAX;
+  }
+
+  for (SelectExeNode*& node : select_nodes) {
+    TupleSet tuple_set;
+    rc = node->execute(tuple_set);
+    if (rc != RC::SUCCESS) {
+      for (SelectExeNode*& tmp_node : select_nodes) {
+        delete tmp_node;
+      }
+      end_trx_if_need(session, trx, false);
+      return rc;
+    } else {
+      tuple_sets.push_back(std::move(tuple_set));
+    }
+  }
+
+  for (SelectExeNode*& tmp_node : select_nodes) {
+    delete tmp_node;
+  }
+  return rc;
+}
+
+RC make_multi_table_tuple_set(const char* db, const Selects& selects,
+                              SessionEvent* session_event,
+                              TupleSet& tuple_set) {
+  if (selects.relation_num <= 1) {
+    return RC::GENERIC_ERROR;
+  }
+
+  char star[2] = "*";
+  RC rc = RC::SUCCESS;
+  Session* session = session_event->get_client()->session;
+  Trx* trx = session->current_trx();
+
+  Selects pre_selects = selects;
+  pre_selects.attr_num = 1;
+  pre_selects.attributes->relation_name = nullptr;
+  pre_selects.attributes->attribute_name = star;
+  std::vector<TupleSet> tuple_sets;
+  rc = make_single_table_tuple_sets(db, pre_selects, session_event, tuple_sets);
+  if (rc != SUCCESS) {
+    return rc;
+  }
+
+  TupleSetsJoiner joiner;
+
+  rc = joiner.init(db, &selects, tuple_sets);
+  if (rc != SUCCESS) {
+    end_trx_if_need(session, trx, true);
+    return rc;
+  }
+
+  joiner.execute();
+  joiner.swap_from(tuple_set);
+
+  return rc;
 }
