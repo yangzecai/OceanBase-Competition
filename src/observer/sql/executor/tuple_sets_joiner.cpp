@@ -169,6 +169,11 @@ RC TupleSetsJoiner::make_schema() {
         return RC::SCHEMA_FIELD_NAME_ILLEGAL;
       }
       const Table* table = get_table(attr.relation_name);
+      if (table == nullptr) {
+        LOG_WARN("The table is not selected. %s", attr.relation_name);
+        return RC::SCHEMA_FIELD_MISSING;
+      }
+
       if (0 == strcmp("*", attr.attribute_name)) {
         TupleSchema::from_table(table, schema);
       } else {
