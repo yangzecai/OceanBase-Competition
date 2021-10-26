@@ -53,18 +53,13 @@ void value_init_float(Value* value, float v) {
   value->data = malloc(sizeof(v));
   memcpy(value->data, &v, sizeof(v));
 }
-void value_init_string(Value* value, const char* v) {
+bool is_date(const char* v) {
   std::regex pattern("[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}");
   std::string text = v;
-  if (std::regex_match(text, pattern)) {
-    value_init_date(value, v);
-  } else {
-    value->type = CHARS;
-    value->data = strdup(v);
+  if (!std::regex_match(text, pattern)) {
+    return false;
   }
-}
-void value_init_date(Value* value, const char* v) {
-  tm time = {0};
+
   int year, month, day;
   sscanf(v, "%d-%d-%d", &year, &month, &day);
 
@@ -108,19 +103,44 @@ void value_init_date(Value* value, const char* v) {
       j_day = false;
     }
   }
+
   if (!(j_year && j_month && j_day)) {
-    value->type = CHARS;
-  } else {
-    value->type = DATES;
+    return false;
   }
 
+  tm time;
+  memset(&time, 0, sizeof(time));
   time.tm_year = year - 1900;
   time.tm_mon = month - 1;
   time.tm_mday = day;
-  time.tm_isdst = 0;
+  time_t timestamp = timegm(&time);
+  if (timestamp != 0 && (timestamp & (0xFFFFFFFF80000000)) != 0) {
+    return false;
+  }
 
-  int t = static_cast<int>(mktime(&time));
+  return true;
+}
+void value_init_string(Value* value, const char* v) {
+  if (is_date(v)) {
+    value_init_date(value, v);
+  } else {
+    value->type = CHARS;
+    value->data = strdup(v);
+  }
+}
+void value_init_date(Value* value, const char* v) {
+  int year, month, day;
+  sscanf(v, "%d-%d-%d", &year, &month, &day);
 
+  tm time;
+  memset(&time, 0, sizeof(time));
+  time.tm_year = year - 1900;
+  time.tm_mon = month - 1;
+  time.tm_mday = day;
+  time_t timestamp = timegm(&time);
+  int t = static_cast<int>(timestamp & 0x7FFFFFFF);
+
+  value->type = DATES;
   value->data = malloc(sizeof(t));
   memcpy(value->data, &t, sizeof(t));
 }

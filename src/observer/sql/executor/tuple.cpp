@@ -209,9 +209,9 @@ void TupleRecordConverter::add_record(const char* record) {
       } break;
       case DATES: {
         int value = *(int*)(record + field_meta->offset());
-        auto t = static_cast<time_t>(value);
+        time_t timestamp = static_cast<time_t>(value);
         int year, month, day;
-        tm* time = localtime(&t);
+        tm* time = gmtime(&timestamp);
 
         year = time->tm_year + 1900;
         month = time->tm_mon + 1;
