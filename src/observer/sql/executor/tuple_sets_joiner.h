@@ -22,7 +22,6 @@ class TupleSetsJoiner {
   RC init(const char* db, const Selects* selects,
           const std::vector<TupleSet>& tuple_sets);
   void execute();
-  void print(std::ostream& os) { joined_tuple_set_.print(os); }
   void swap_from(TupleSet& tuple_set) {
     tuple_set = std::move(joined_tuple_set_);
   }

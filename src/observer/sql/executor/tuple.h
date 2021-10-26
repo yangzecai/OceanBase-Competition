@@ -91,7 +91,7 @@ class TupleSchema {
   int index_of_field(const char* table_name, const char* field_name) const;
   void clear() { fields_.clear(); }
 
-  void print(std::ostream& os) const;
+  void print(std::ostream& os, bool multi_table) const;
 
  public:
   static void from_table(const Table* table, TupleSchema& schema);
@@ -122,7 +122,7 @@ class TupleSet {
   const Tuple& get(int index) const;
   const std::vector<Tuple>& tuples() const;
 
-  void print(std::ostream& os) const;
+  void print(std::ostream& os, bool multi_table) const;
 
  public:
   const TupleSchema& schema() const { return schema_; }

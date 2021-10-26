@@ -223,8 +223,7 @@ RC ExecuteStage::do_select(const char* db, Query* sql,
   Trx* trx = session->current_trx();
   const Selects& selects = sql->sstr.selection;
 
-  TupleSet tuple_set;
-
+  std::stringstream ss;  
   if (selects.relation_num == 1) {
     std::vector<TupleSet> tuple_sets;
     rc = make_single_table_tuple_sets(db, selects, session_event, tuple_sets);
@@ -232,21 +231,21 @@ RC ExecuteStage::do_select(const char* db, Query* sql,
       session_event->set_response("FAILURE\n");
       return rc;
     }
-    tuple_set = std::move(tuple_sets[0]);
+    tuple_sets[0].print(ss, false);
   } else if (selects.relation_num > 1) {
+    TupleSet tuple_set;
     rc = make_multi_table_tuple_set(db, selects, session_event, tuple_set);
     if (rc != RC::SUCCESS) {
       session_event->set_response("FAILURE\n");
       return rc;
     }
+    tuple_set.print(ss, true);
   } else {
     LOG_ERROR("should not print this message");
     session_event->set_response("FAILURE\n");
     return rc;
   }
 
-  std::stringstream ss;
-  tuple_set.print(ss);
   session_event->set_response(ss.str());
   end_trx_if_need(session, trx, true);
   return rc;
