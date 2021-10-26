@@ -117,7 +117,6 @@ void value_init_date(Value* value, const char* v) {
   time.tm_year = year - 1900;
   time.tm_mon = month - 1;
   time.tm_mday = day;
-  time.tm_hour = 20;
   time.tm_isdst = 0;
 
   int t = static_cast<int>(mktime(&time));
