@@ -192,9 +192,30 @@ void attr_info_destroy(AttrInfo* attr_info) {
   attr_info->name = nullptr;
 }
 
+void aggregate_init(Aggregate* aggregate, AggregateType type, int is_attr,
+                    RelAttr* attr, Value* value) {
+  aggregate->type = type;
+  aggregate->is_attr = is_attr;
+  if (is_attr) {
+    aggregate->attr = *attr;
+  } else {
+    aggregate->value = *value;
+  }
+}
+void aggregate_destory(Aggregate* aggregate) {
+  if (aggregate->is_attr) {
+    relation_attr_destroy(&aggregate->attr);
+  } else {
+    value_destroy(&aggregate->value);
+  }
+}
+
 void selects_init(Selects* selects, ...);
 void selects_append_attribute(Selects* selects, RelAttr* rel_attr) {
   selects->attributes[selects->attr_num++] = *rel_attr;
+}
+void selects_append_aggregate(Selects* selects, Aggregate* aggregate) {
+  selects->aggregates[selects->aggregate_num++] = *aggregate;
 }
 void selects_append_relation(Selects* selects, const char* relation_name) {
   selects->relations[selects->relation_num++] = strdup(relation_name);
@@ -226,6 +247,10 @@ void selects_destroy(Selects* selects) {
     condition_destroy(&selects->conditions[i]);
   }
   selects->condition_num = 0;
+
+  for (size_t i = 0; i < selects->aggregate_num; ++i) {
+    aggregate_destory(&selects->aggregates[i]);
+  }
 }
 
 void inserts_init(Inserts* inserts, const char* relation_name, Value values[],

@@ -225,13 +225,22 @@ RC ExecuteStage::do_select(const char* db, Query* sql,
 
   std::stringstream ss;  
   if (selects.relation_num == 1) {
-    std::vector<TupleSet> tuple_sets;
-    rc = make_single_table_tuple_sets(db, selects, session_event, tuple_sets);
-    if (rc != RC::SUCCESS) {
+    if (selects.attr_num != 0) {
+      std::vector<TupleSet> tuple_sets;
+      rc = make_single_table_tuple_sets(db, selects, session_event, tuple_sets);
+      if (rc != RC::SUCCESS) {
+        session_event->set_response("FAILURE\n");
+        return rc;
+      }
+      tuple_sets[0].print(ss, false);
+    } else if (selects.aggregate_num != 0) {
       session_event->set_response("FAILURE\n");
-      return rc;
+      return RC::GENERIC_ERROR;
+    } else {
+      LOG_ERROR("should not print this message");
+      session_event->set_response("FAILURE\n");
+      return RC::GENERIC_ERROR;
     }
-    tuple_sets[0].print(ss, false);
   } else if (selects.relation_num > 1) {
     TupleSet tuple_set;
     rc = make_multi_table_tuple_set(db, selects, session_event, tuple_set);

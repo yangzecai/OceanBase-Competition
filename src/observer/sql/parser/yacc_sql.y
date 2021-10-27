@@ -20,6 +20,7 @@ typedef struct ParserContext {
   Condition conditions[MAX_NUM];
   CompOp comp;
 	char id[MAX_NUM];
+  AggregateType aggregate_type;
 } ParserContext;
 
 //获取子串
@@ -103,6 +104,10 @@ ParserContext *get_context(yyscan_t scanner)
         LE
         GE
         NE
+        MAX
+        MIN
+        COUNT
+        AVG
 
 %union {
   struct _Attr *attr;
@@ -352,8 +357,8 @@ select:				/*  select 语句的语法解析树*/
 			CONTEXT->from_length=0;
 			CONTEXT->select_length=0;
 			CONTEXT->value_length = 0;
-	}
-	;
+    }
+    ;
 
 select_attr:
     STAR {  
@@ -375,6 +380,8 @@ select_attr:
       RelAttr attr;
       relation_attr_init(&attr, $1, "*");
       selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+    }
+    | aggregate_func aggregate_list {
     }
     ;
 attr_list:
@@ -402,6 +409,46 @@ attr_list:
     }
   	;
 
+aggregate_func:
+    aggregate_type LBRACE ID RBRACE {
+      RelAttr attr;
+			relation_attr_init(&attr, NULL, $3);
+      Aggregate aggregate;
+      aggregate_init(&aggregate, CONTEXT->aggregate_type, 1, &attr, NULL);
+			selects_append_aggregate(&CONTEXT->ssql->sstr.selection, &aggregate);
+    }
+    | aggregate_type LBRACE ID DOT ID RBRACE {
+      RelAttr attr;
+			relation_attr_init(&attr, $3, $5);
+      Aggregate aggregate;
+      aggregate_init(&aggregate, CONTEXT->aggregate_type, 1, &attr, NULL);
+			selects_append_aggregate(&CONTEXT->ssql->sstr.selection, &aggregate);
+    }
+    | aggregate_type LBRACE value RBRACE {
+      Value* value = &CONTEXT->values[CONTEXT->value_length - 1];
+      Aggregate aggregate;
+      aggregate_init(&aggregate, CONTEXT->aggregate_type, 0, NULL, value);
+			selects_append_aggregate(&CONTEXT->ssql->sstr.selection, &aggregate);
+    }
+    | aggregate_type LBRACE STAR RBRACE {
+      RelAttr attr;
+			relation_attr_init(&attr, NULL, "*");
+      Aggregate aggregate;
+      aggregate_init(&aggregate, CONTEXT->aggregate_type, 1, &attr, NULL);
+			selects_append_aggregate(&CONTEXT->ssql->sstr.selection, &aggregate);
+    }
+    ;
+aggregate_type:
+  	  MAX { CONTEXT->aggregate_type = AGG_MAX; }
+    | MIN { CONTEXT->aggregate_type = AGG_MIN; }
+    | COUNT { CONTEXT->aggregate_type = AGG_COUNT; }
+    | AVG { CONTEXT->aggregate_type = AGG_AVG; }
+    ;
+aggregate_list:
+    /* empty */
+    | COMMA aggregate_func aggregate_list {
+    }
+    ;
 rel_list:
     /* empty */
     | COMMA ID rel_list {	
