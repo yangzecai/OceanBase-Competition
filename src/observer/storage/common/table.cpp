@@ -291,14 +291,15 @@ RC Table::insert_record(Trx* trx, Record* record) {
   }
   return rc;
 }
-RC Table::insert_record(Trx* trx, int value_num, const Value* values) {
+RC Table::insert_record(Trx* trx, int value_num, int tuple_num,
+                        const Value* values) {
   if (value_num <= 0 || nullptr == values) {
     LOG_ERROR("Invalid argument. value num=%d, values=%p", value_num, values);
     return RC::INVALID_ARGUMENT;
   }
 
   std::vector<char*> record_data;
-  RC rc = make_record(value_num, values, record_data);
+  RC rc = make_record(value_num, tuple_num, values, record_data);
   if (rc != RC::SUCCESS) {
     LOG_ERROR("Failed to create a record. rc=%d:%s", rc, strrc(rc));
     return rc;
@@ -319,17 +320,17 @@ const char* Table::name() const { return table_meta_.name(); }
 
 const TableMeta& Table::table_meta() const { return table_meta_; }
 
-RC Table::make_record(int value_num, const Value* values,
+RC Table::make_record(int value_num, int insert_tuple_num, const Value* values,
                       std::vector<char*>& record_out) {
   // 检查字段类型是否一致
   int field_num = table_meta_.field_num() - table_meta_.sys_field_num();
-  if (value_num % field_num != 0) {
+  int cal_tuple_num = value_num / field_num;
+  if (value_num % field_num != 0 || cal_tuple_num != insert_tuple_num) {
     return RC::SCHEMA_FIELD_MISSING;
   }
-  int tuple_num = value_num / field_num;
 
   const int normal_field_start_index = table_meta_.sys_field_num();
-  for (int i = 0; i < tuple_num; i++) {
+  for (int i = 0; i < cal_tuple_num; i++) {
     for (int j = 0; j < field_num; j++) {
       const FieldMeta* field = table_meta_.field(j + normal_field_start_index);
       const Value& value = values[i * field_num + j];
@@ -342,7 +343,7 @@ RC Table::make_record(int value_num, const Value* values,
   }
 
   // 复制所有字段的值
-  for (int i = 0; i < tuple_num; i++) {
+  for (int i = 0; i < cal_tuple_num; i++) {
     int record_size = table_meta_.record_size();
     char* record = new char[record_size];
 
