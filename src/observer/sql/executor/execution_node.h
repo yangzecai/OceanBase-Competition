@@ -16,6 +16,7 @@ See the Mulan PSL v2 for more details. */
 
 #include <vector>
 
+#include "sql/executor/select_handler.h"
 #include "sql/executor/tuple.h"
 #include "storage/common/condition_filter.h"
 
@@ -41,10 +42,63 @@ class SelectExeNode : public ExecutionNode {
   RC execute(TupleSet& tuple_set) override;
 
  private:
-  Trx* trx_ = nullptr;
+  Trx* trx_;
   Table* table_;
   TupleSchema tuple_schema_;
   std::vector<DefaultConditionFilter*> condition_filters_;
+};
+
+class JoinExeNode : public ExecutionNode {
+ public:
+  struct JoinFilter {
+    int left_tuple_set_index;
+    int left_field_index;
+    int right_tuple_set_index;
+    int right_field_index;
+    CompOp comp;
+  };
+
+  JoinExeNode();
+  virtual ~JoinExeNode();
+
+  RC init(Trx* trx, SelectHandler* handler);
+  RC execute(TupleSet& tuple_set) override;
+
+ private:
+  void add_tuple_dfs(TupleSet& tuple_set,
+                     const std::vector<TupleSet>& tuple_sets_raw,
+                     std::vector<int>& tuple_indexes);
+  bool filter(const std::vector<TupleSet>& tuple_sets_raw,
+              std::vector<int>& tuple_indexes) const;
+
+  Trx* trx_;
+  TupleSchema tuple_schema_;
+  std::vector<JoinFilter> join_filter_;
+  std::vector<ExecutionNode*> sub_nodes_;
+};
+
+class SortExeNode : public ExecutionNode {
+ public:
+  SortExeNode();
+  virtual ~SortExeNode();
+
+  RC init(Trx* trx, ExecutionNode*&& sub_nodes);
+  RC execute(TupleSet& tuple_set) override;
+};
+
+class ProjectExeNode : public ExecutionNode {
+ public:
+  ProjectExeNode();
+  virtual ~ProjectExeNode();
+
+  RC init(Trx* trx, SelectHandler* handler);
+  RC execute(TupleSet& tuple_set) override;
+
+ private:
+  Trx* trx_ = nullptr;
+  TupleSchema tuple_schema_;
+  TupleSet tuple_set_;
+  ExecutionNode* sub_node_;
 };
 
 #endif  //__OBSERVER_SQL_EXECUTOR_EXECUTION_NODE_H_

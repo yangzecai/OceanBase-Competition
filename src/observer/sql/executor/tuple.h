@@ -60,12 +60,19 @@ class TupleField {
   TupleField(AttrType type, const char* table_name, const char* field_name)
       : type_(type), table_name_(table_name), field_name_(field_name) {}
 
+  bool operator==(const TupleField& rhs) const {
+    return type_ == rhs.type_ && table_name_ == rhs.table_name_ &&
+           field_name_ == rhs.field_name_;
+  }
+
   AttrType type() const { return type_; }
 
   const char* table_name() const { return table_name_.c_str(); }
   const char* field_name() const { return field_name_.c_str(); }
 
   std::string to_string() const;
+
+  bool is_aggregate() const { return field_name_.empty(); }
 
  private:
   AttrType type_;
@@ -98,6 +105,7 @@ class TupleSchema {
 
  private:
   std::vector<TupleField> fields_;
+  std::map<size_t, Aggregate> aggregates_;
 };
 
 class TupleSet {
