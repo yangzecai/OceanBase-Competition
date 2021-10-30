@@ -84,9 +84,9 @@ typedef struct {
 
 // struct of insert
 typedef struct {
-  char* relation_name;    // Relation to insert into
-  size_t value_num;       // Length of values
-  Value values[MAX_NUM];  // values to insert
+  char* relation_name;        // Relation to insert into
+  size_t value_num;           // Length of values
+  Value values[MAX_NUM * MAX_NUM];  // values to insert
 } Inserts;
 
 // struct of delete
