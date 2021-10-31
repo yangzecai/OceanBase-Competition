@@ -27,6 +27,8 @@ class SelectHandler {
   RC init_conditions();
   RC init_exe_nodes();
 
+  bool is_aggregate(const RelAttr* attribute);
+
   int index_of_table(std::string table_name);
 
   RC add_attribute_to_select_schemas(const RelAttr* attribute);

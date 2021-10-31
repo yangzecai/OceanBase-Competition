@@ -99,6 +99,7 @@ class ProjectExeNode : public ExecutionNode {
   TupleSchema tuple_schema_;
   TupleSet tuple_set_;
   ExecutionNode* sub_node_;
+  const char* single_table_name_;
 };
 
 #endif  //__OBSERVER_SQL_EXECUTOR_EXECUTION_NODE_H_

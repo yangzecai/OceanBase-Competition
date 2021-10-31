@@ -216,6 +216,9 @@ void selects_append_attribute(Selects* selects, RelAttr* rel_attr) {
 }
 void selects_append_aggregate(Selects* selects, Aggregate* aggregate) {
   selects->aggregates[selects->aggregate_num++] = *aggregate;
+  RelAttr attr_pendding;
+  relation_attr_init(&attr_pendding, NULL, "");
+  selects_append_attribute(selects, &attr_pendding);
 }
 void selects_append_relation(Selects* selects, const char* relation_name) {
   selects->relations[selects->relation_num++] = strdup(relation_name);

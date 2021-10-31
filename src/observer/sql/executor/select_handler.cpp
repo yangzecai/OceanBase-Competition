@@ -91,10 +91,9 @@ RC SelectHandler::init_schemas() {
   RC rc = RC::SUCCESS;
   select_schemas_.resize(tables_.size());
 
-  for (int i = selects_->attr_num - 1, j = selects_->aggregate_num - 1; i >= 0;
-       --i) {
+  for (size_t i = 0, j = 0; i < selects_->attr_num; ++i) {
     const RelAttr* attribute = selects_->attributes + i;
-    if (attribute->attribute_name != nullptr) {
+    if (!is_aggregate(attribute)) {
       rc = add_attribute_to_project_schema(attribute);
       if (rc != RC::SUCCESS) {
         return rc;
@@ -104,7 +103,7 @@ RC SelectHandler::init_schemas() {
         return rc;
       }
     } else {
-      const Aggregate* aggregate = selects_->aggregates + j--;
+      const Aggregate* aggregate = selects_->aggregates + j++;
       rc = add_aggregate_to_project_schema(aggregate);
       if (rc != RC::SUCCESS) {
         return rc;
@@ -116,7 +115,7 @@ RC SelectHandler::init_schemas() {
     }
   }
 
-  for (int i = selects_->condition_num - 1; i >= 0; --i) {
+  for (size_t i = 0; i < selects_->condition_num; ++i) {
     const Condition* condition = selects_->conditions + i;
     if (condition->left_is_attr) {
       rc = add_attribute_to_select_schemas(&condition->left_attr);
@@ -141,7 +140,7 @@ RC SelectHandler::init_conditions() {
   RC rc = RC::SUCCESS;
   select_filters_.resize(tables_.size());
 
-  for (int i = selects_->condition_num - 1; i >= 0; --i) {
+  for (size_t i = 0; i < selects_->condition_num; ++i) {
     const Condition* condition = selects_->conditions + i;
     if (is_join_condition(condition)) {
       rc = add_condition_to_join_filter(condition);
@@ -157,6 +156,10 @@ RC SelectHandler::init_conditions() {
   }
 
   return rc;
+}
+
+bool SelectHandler::is_aggregate(const RelAttr* attribute) {
+  return *attribute->attribute_name == '\0';
 }
 
 int SelectHandler::index_of_table(std::string table_name) {
@@ -212,7 +215,11 @@ RC SelectHandler::add_attribute_to_select_schemas(const RelAttr* attribute) {
   return rc;
 }
 RC SelectHandler::add_aggregate_to_select_schemas(const Aggregate* aggregate) {
-  return RC::GENERIC_ERROR;
+  RC rc = RC::SUCCESS;
+  if (aggregate->is_attr) {
+    rc = add_attribute_to_select_schemas(&aggregate->attr);
+  }
+  return rc;
 }
 RC SelectHandler::add_attribute_to_project_schema(const RelAttr* attribute) {
   RC rc = add_attribute_to_schema(attribute, &project_schema_);
@@ -222,7 +229,8 @@ RC SelectHandler::add_attribute_to_project_schema(const RelAttr* attribute) {
   return rc;
 }
 RC SelectHandler::add_aggregate_to_project_schema(const Aggregate* aggregate) {
-  return RC::GENERIC_ERROR;
+  project_schema_.add(*aggregate);
+  return RC::SUCCESS;
 }
 
 RC SelectHandler::add_attribute_to_schema(const RelAttr* attribute,
@@ -275,19 +283,13 @@ RC SelectHandler::add_attribute_to_schema(const RelAttr* attribute,
   return RC::SUCCESS;
 }
 
-RC SelectHandler::add_aggregate_to_schema(const Aggregate* aggregate,
-                                          TupleSchema* schema) {
-  assert(!tables_.empty());
-  return RC::GENERIC_ERROR;
-}
-
 bool SelectHandler::is_join_condition(const Condition* condition) {
   if (tables_.size() > 1 && condition->left_is_attr &&
       condition->right_is_attr) {
     const char* left_table_name = condition->left_attr.relation_name;
     const char* right_table_name = condition->right_attr.relation_name;
     if (left_table_name != nullptr && right_table_name != nullptr &&
-        0 == strcmp(left_table_name, right_table_name)) {
+        0 != strcmp(left_table_name, right_table_name)) {
       return true;
     }
   }

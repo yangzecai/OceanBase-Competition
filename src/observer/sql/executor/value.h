@@ -83,4 +83,28 @@ class StringValue : public TupleValue {
   std::string value_;
 };
 
+class DateValue : public TupleValue {
+ public:
+  explicit DateValue(int timestamp) : value_(timestamp) {}
+
+  void to_string(std::ostream& os) const override {
+    time_t timestamp = static_cast<time_t>(value_);
+    tm* time = gmtime(&timestamp);
+    int year = time->tm_year + 1900;
+    int month = time->tm_mon + 1;
+    int day = time->tm_mday;
+    char s[16];
+    sprintf(s, "%04d-%02d-%02d", year, month, day);
+    os << s;
+  }
+
+  int compare(const TupleValue& other) const override {
+    const DateValue& date_other = (const DateValue&)other;
+    return value_ - date_other.value_;
+  }
+
+ private:
+  int value_;
+};
+
 #endif  //__OBSERVER_SQL_EXECUTOR_VALUE_H_

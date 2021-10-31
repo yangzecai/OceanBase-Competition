@@ -14,9 +14,9 @@ See the Mulan PSL v2 for more details. */
 #ifndef __OBSERVER_SQL_EXECUTOR_TUPLE_H_
 #define __OBSERVER_SQL_EXECUTOR_TUPLE_H_
 
+#include <map>
 #include <memory>
 #include <vector>
-#include <map>
 
 #include "sql/executor/value.h"
 #include "sql/parser/parse.h"
@@ -39,6 +39,7 @@ class Tuple {
   void add(int value);
   void add(float value);
   void add(const char* s, int len);
+  void add(int timestamp, bool date);
 
   const std::vector<std::shared_ptr<TupleValue>>& values() const {
     return values_;
@@ -89,12 +90,20 @@ class TupleSchema {
   void add(AttrType type, const char* table_name, const char* field_name);
   void add_if_not_exists(AttrType type, const char* table_name,
                          const char* field_name);
+  void add(const Aggregate& aggregate);
   // void merge(const TupleSchema &other);
   void append(const TupleSchema& other);
 
   const std::vector<TupleField>& fields() const { return fields_; }
 
   const TupleField& field(int index) const { return fields_[index]; }
+  const Aggregate* aggregate(int index) const {
+    if (aggregates_.find(index) != aggregates_.end()) {
+      return &aggregates_.at(index);
+    } else {
+      return nullptr;
+    }
+  }
 
   int index_of_field(const char* table_name, const char* field_name) const;
   void clear() { fields_.clear(); }
@@ -105,6 +114,8 @@ class TupleSchema {
   static void from_table(const Table* table, TupleSchema& schema);
 
  private:
+  void print_aggregate(std::ostream& os, size_t aggregate_index) const;
+
   std::vector<TupleField> fields_;
   std::map<size_t, Aggregate> aggregates_;
 };

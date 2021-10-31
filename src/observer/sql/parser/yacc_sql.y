@@ -368,71 +368,52 @@ select_attr:
 			relation_attr_init(&attr, NULL, "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
-    | ID attr_list {
+    | attribute attr_list {
+
+    }
+    | aggregate attr_list {
+
+    }
+    ;
+attribute:
+    ID {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, $1);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
-  	| ID DOT ID attr_list {
+  	| ID DOT ID {
 			RelAttr attr;
 			relation_attr_init(&attr, $1, $3);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
-    | ID DOT STAR attr_list {
+    | ID DOT STAR {
       RelAttr attr;
       relation_attr_init(&attr, $1, "*");
       selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
     }
-    | aggregate_func aggregate_list {
-    }
     ;
-attr_list:
-    /* empty */
-    | COMMA ID attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, NULL, $2);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-     	  // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].relation_name = NULL;
-        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].attribute_name=$2;
-    }
-    | COMMA ID DOT ID attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, $2, $4);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
-        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
-  	}
-    | COMMA ID DOT STAR attr_list {
-      RelAttr attr;
-      relation_attr_init(&attr, $2, "*");
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name="*";
-        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
-    }
-  	;
-
-aggregate_func:
-    aggregate_type LBRACE ID RBRACE {
+aggregate:
+    agg_type LBRACE ID RBRACE {
       RelAttr attr;
 			relation_attr_init(&attr, NULL, $3);
       Aggregate aggregate;
       aggregate_init(&aggregate, CONTEXT->aggregate_type, 1, &attr, NULL);
 			selects_append_aggregate(&CONTEXT->ssql->sstr.selection, &aggregate);
     }
-    | aggregate_type LBRACE ID DOT ID RBRACE {
+    | agg_type LBRACE ID DOT ID RBRACE {
       RelAttr attr;
 			relation_attr_init(&attr, $3, $5);
       Aggregate aggregate;
       aggregate_init(&aggregate, CONTEXT->aggregate_type, 1, &attr, NULL);
 			selects_append_aggregate(&CONTEXT->ssql->sstr.selection, &aggregate);
     }
-    | aggregate_type LBRACE value RBRACE {
+    | agg_type LBRACE value RBRACE {
       Value* value = &CONTEXT->values[CONTEXT->value_length - 1];
       Aggregate aggregate;
       aggregate_init(&aggregate, CONTEXT->aggregate_type, 0, NULL, value);
 			selects_append_aggregate(&CONTEXT->ssql->sstr.selection, &aggregate);
     }
-    | aggregate_type LBRACE STAR RBRACE {
+    | agg_type LBRACE STAR RBRACE {
       RelAttr attr;
 			relation_attr_init(&attr, NULL, "*");
       Aggregate aggregate;
@@ -440,16 +421,20 @@ aggregate_func:
 			selects_append_aggregate(&CONTEXT->ssql->sstr.selection, &aggregate);
     }
     ;
-aggregate_type:
+attr_list:
+    /* empty */
+    | COMMA attribute attr_list {
+
+    }
+    | COMMA aggregate attr_list {
+
+    }
+  	;
+agg_type:
   	  MAX { CONTEXT->aggregate_type = AGG_MAX; }
     | MIN { CONTEXT->aggregate_type = AGG_MIN; }
     | COUNT { CONTEXT->aggregate_type = AGG_COUNT; }
     | AVG { CONTEXT->aggregate_type = AGG_AVG; }
-    ;
-aggregate_list:
-    /* empty */
-    | COMMA aggregate_func aggregate_list {
-    }
     ;
 rel_list:
     /* empty */
