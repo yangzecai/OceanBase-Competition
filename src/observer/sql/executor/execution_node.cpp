@@ -13,6 +13,7 @@ See the Mulan PSL v2 for more details. */
 
 #include "sql/executor/execution_node.h"
 #include "common/log/log.h"
+#include "sql/executor/select_handler.h"
 #include "storage/common/table.h"
 
 int index_of_field_in_schema_without_aggregate(const TupleField& field,
@@ -88,6 +89,8 @@ RC JoinExeNode::init(Trx* trx, SelectHandler* handler) {
       return rc;
     }
   }
+  handler->select_schemas_.clear();
+  handler->select_filters_.clear();
 
   return rc;
 }
@@ -119,7 +122,7 @@ void JoinExeNode::add_tuple_dfs(TupleSet& tuple_set,
       Tuple tuple_new;
       for (size_t i = 0; i < tuple_sets_raw.size(); ++i) {
         const Tuple& tuple_raw = tuple_sets_raw[i].get(tuple_indexes[i]);
-        for (size_t j = 0; j < tuple_raw.size(); ++j) {
+        for (int j = 0; j < tuple_raw.size(); ++j) {
           tuple_new.add(tuple_raw.get_pointer(j));
         }
       }
@@ -130,7 +133,7 @@ void JoinExeNode::add_tuple_dfs(TupleSet& tuple_set,
 
   int tuple_set_index = tuple_indexes.size();
   int tuple_num = tuple_sets_raw[tuple_set_index].size();
-  for (size_t i = 0; i < tuple_num; ++i) {
+  for (int i = 0; i < tuple_num; ++i) {
     tuple_indexes.push_back(i);
     add_tuple_dfs(tuple_set, tuple_sets_raw, tuple_indexes);
     tuple_indexes.pop_back();
@@ -139,16 +142,16 @@ void JoinExeNode::add_tuple_dfs(TupleSet& tuple_set,
 
 bool JoinExeNode::filter(const std::vector<TupleSet>& tuple_sets_raw,
                          std::vector<int>& tuple_indexes) const {
-  std::vector<const Tuple&> tuples_raw;
+  std::vector<const Tuple*> tuples_raw;
   for (size_t i = 0; i < tuple_sets_raw.size(); ++i) {
-    tuples_raw.push_back(tuple_sets_raw[i].get(tuple_indexes[i]));
+    tuples_raw.push_back(&tuple_sets_raw[i].get(tuple_indexes[i]));
   }
   for (const JoinFilter& condition : join_filter_) {
     const TupleValue& left_value =
-        tuples_raw[condition.left_tuple_set_index].get(
+        tuples_raw[condition.left_tuple_set_index]->get(
             condition.left_field_index);
     const TupleValue& right_value =
-        tuples_raw[condition.right_tuple_set_index].get(
+        tuples_raw[condition.right_tuple_set_index]->get(
             condition.right_field_index);
     int cmp_result = left_value.compare(right_value);
     bool pass = false;
@@ -202,6 +205,8 @@ RC ProjectExeNode::init(Trx* trx, SelectHandler* handler) {
     if (rc != RC::SUCCESS) {
       return rc;
     }
+    handler->select_schemas_.clear();
+    handler->select_filters_.clear();
   } else {
     JoinExeNode* join_exe_node = new JoinExeNode();
     sub_node_ = join_exe_node;
@@ -210,6 +215,8 @@ RC ProjectExeNode::init(Trx* trx, SelectHandler* handler) {
       return rc;
     }
   }
+
+  return rc;
 }
 
 RC ProjectExeNode::execute(TupleSet& tuple_set) {
@@ -237,7 +244,7 @@ RC ProjectExeNode::execute(TupleSet& tuple_set) {
 
   tuple_set.clear();
   tuple_set.set_schema(tuple_schema_);
-  for (size_t row = 0; row < tuple_set_raw.size(); ++row) {
+  for (int row = 0; row < tuple_set_raw.size(); ++row) {
     const Tuple& tuple_raw = tuple_set_raw.get(row);
     Tuple tuple_new;
     for (size_t col = 0; col < project_schema_num; ++col) {
@@ -250,4 +257,6 @@ RC ProjectExeNode::execute(TupleSet& tuple_set) {
     }
     tuple_set.add(std::move(tuple_new));
   }
+
+  return rc;
 }

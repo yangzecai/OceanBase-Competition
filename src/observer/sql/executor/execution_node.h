@@ -16,12 +16,12 @@ See the Mulan PSL v2 for more details. */
 
 #include <vector>
 
-#include "sql/executor/select_handler.h"
 #include "sql/executor/tuple.h"
 #include "storage/common/condition_filter.h"
 
 class Table;
 class Trx;
+class SelectHandler;
 
 class ExecutionNode {
  public:

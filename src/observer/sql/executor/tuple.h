@@ -16,6 +16,7 @@ See the Mulan PSL v2 for more details. */
 
 #include <memory>
 #include <vector>
+#include <map>
 
 #include "sql/executor/value.h"
 #include "sql/parser/parse.h"

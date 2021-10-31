@@ -1,16 +1,37 @@
-#include "sql/executor/select_handler.h"
+#include <sstream>
+
 #include <cassert>
 #include "common/log/log.h"
 #include "session/session.h"
+#include "sql/executor/select_handler.h"
 #include "storage/common/table.h"
 #include "storage/default/default_handler.h"
+
+SelectHandler::SelectHandler()
+    : db_(nullptr), session_event_(nullptr), trx_(nullptr), selects_(nullptr) {}
+
+SelectHandler::~SelectHandler() {
+  if (!select_filters_.empty()) {
+    for (size_t i = 0; i < select_filters_.size(); ++i) {
+      for (size_t j = 0; j < select_filters_[i].size(); ++j) {
+        delete select_filters_[i][j];
+        select_filters_[i][j] = nullptr;
+      }
+    }
+  }
+  select_filters_.clear();
+
+  if (session_event_->get_response_len() == 0) {
+    session_event_->set_response("FAILURE\n");
+  }
+}
 
 RC SelectHandler::init(const char* db, Query* sql,
                        SessionEvent* session_event) {
   RC rc = RC::SUCCESS;
   db_ = db;
-  Session* session = session_event->get_client()->session;
-  trx_ = session->current_trx();
+  session_event_ = session_event;
+  trx_ = session_event->get_client()->session->current_trx();
   selects_ = &sql->sstr.selection;
 
   rc = init_tables();
@@ -28,13 +49,26 @@ RC SelectHandler::init(const char* db, Query* sql,
 
   std::shared_ptr<ProjectExeNode> root_exe_node =
       std::make_shared<ProjectExeNode>();
-  root_exe_node->init(trx_, this);
+  rc = root_exe_node->init(trx_, this);
+  if (rc != RC::SUCCESS) {
+    return rc;
+  }
   root_exe_node_ = root_exe_node;
+  return rc;
 }
 
-RC SelectHandler::handle(TupleSet& tuple_set) {
-  tuple_set.clear();
-  return root_exe_node_->execute(tuple_set);
+RC SelectHandler::handle() {
+  TupleSet tuple_set;
+  RC rc = root_exe_node_->execute(tuple_set);
+  if (rc != RC::SUCCESS) {
+    return rc;
+  }
+
+  std::stringstream ss;
+  tuple_set.print(ss, tables_.size() > 1);
+  session_event_->set_response(ss.str());
+
+  return rc;
 }
 
 RC SelectHandler::init_tables() {
@@ -97,6 +131,8 @@ RC SelectHandler::init_schemas() {
       }
     }
   }
+
+  return rc;
 }
 
 RC SelectHandler::init_conditions() {
@@ -119,6 +155,8 @@ RC SelectHandler::init_conditions() {
       }
     }
   }
+
+  return rc;
 }
 
 int SelectHandler::index_of_table(std::string table_name) {
@@ -171,7 +209,7 @@ RC SelectHandler::add_attribute_to_select_schemas(const RelAttr* attribute) {
     }
   }
 
-  return RC::SUCCESS;
+  return rc;
 }
 RC SelectHandler::add_aggregate_to_select_schemas(const Aggregate* aggregate) {
   return RC::GENERIC_ERROR;
@@ -181,6 +219,7 @@ RC SelectHandler::add_attribute_to_project_schema(const RelAttr* attribute) {
   if (rc != RC::SUCCESS) {
     return rc;
   }
+  return rc;
 }
 RC SelectHandler::add_aggregate_to_project_schema(const Aggregate* aggregate) {
   return RC::GENERIC_ERROR;
@@ -189,8 +228,6 @@ RC SelectHandler::add_aggregate_to_project_schema(const Aggregate* aggregate) {
 RC SelectHandler::add_attribute_to_schema(const RelAttr* attribute,
                                           TupleSchema* schema) {
   assert(!tables_.empty());
-  assert(!(attribute->relation_name == nullptr &&
-           *attribute->attribute_name == '*'));
 
   const char* table_name = attribute->relation_name;
   const char* attr_name = attribute->attribute_name;
@@ -315,4 +352,6 @@ RC SelectHandler::add_condition_to_join_filter(const Condition* condition) {
       select_schemas_[filter.right_tuple_set_index].index_of_field(
           right_table_name, right_attr_name);
   join_filter_.push_back(filter);
+
+  return RC::SUCCESS;
 }

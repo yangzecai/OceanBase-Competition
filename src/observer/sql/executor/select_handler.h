@@ -1,9 +1,12 @@
 #ifndef __OBSERVER_SQL_EXECUTOR_SELECT_HANDLER_H_
 #define __OBSERVER_SQL_EXECUTOR_SELECT_HANDLER_H_
 
+#include <unordered_map>
+
 #include "event/session_event.h"
 #include "rc.h"
 #include "sql/executor/execution_node.h"
+#include "sql/executor/tuple.h"
 #include "sql/parser/parse_defs.h"
 
 class SelectHandler {
@@ -11,13 +14,13 @@ class SelectHandler {
   SelectHandler();
   ~SelectHandler();
   RC init(const char* db, Query* sql, SessionEvent* session_event);
-  RC handle(TupleSet& tuple_set);
+  RC handle();
 
  private:
-  friend ProjectExeNode;
-  friend SortExeNode;
-  friend JoinExeNode;
-  friend SelectExeNode;
+  friend class ProjectExeNode;
+  friend class SortExeNode;
+  friend class JoinExeNode;
+  friend class SelectExeNode;
 
   RC init_tables();
   RC init_schemas();
@@ -38,6 +41,7 @@ class SelectHandler {
   bool is_join_condition(const Condition* condition);
 
   const char* db_;
+  SessionEvent* session_event_;
   Trx* trx_;
   const Selects* selects_;
   std::vector<Table*> tables_;
