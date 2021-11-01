@@ -47,8 +47,8 @@ RC SelectHandler::init(const char* db, Query* sql,
     return rc;
   }
 
-  std::shared_ptr<ProjectExeNode> root_exe_node =
-      std::make_shared<ProjectExeNode>();
+  std::shared_ptr<AggregateExeNode> root_exe_node =
+      std::make_shared<AggregateExeNode>();
   rc = root_exe_node->init(trx_, this);
   if (rc != RC::SUCCESS) {
     return rc;

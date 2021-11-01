@@ -17,6 +17,7 @@ class SelectHandler {
   RC handle();
 
  private:
+  friend class AggregateExeNode;
   friend class ProjectExeNode;
   friend class SortExeNode;
   friend class JoinExeNode;

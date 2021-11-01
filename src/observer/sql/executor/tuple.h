@@ -53,6 +53,14 @@ class Tuple {
     return values_[index];
   }
 
+  RC set_pointer(size_t index, const std::shared_ptr<TupleValue>& other) {
+    if (values_.size() <= index) {
+      return RC::GENERIC_ERROR;
+    }
+    values_[index] = other;
+    return RC::SUCCESS;
+  }
+
  private:
   std::vector<std::shared_ptr<TupleValue>> values_;
 };
@@ -110,6 +118,8 @@ class TupleSchema {
 
   void print(std::ostream& os, bool multi_table) const;
 
+  bool has_attribute() const { return fields_.size() != aggregates_.size(); }
+
  public:
   static void from_table(const Table* table, TupleSchema& schema);
 
@@ -136,6 +146,7 @@ class TupleSet {
   void add(Tuple&& tuple);
 
   void clear();
+  void clear_tuples() { tuples_.clear(); }
 
   bool is_empty() const;
   int size() const;

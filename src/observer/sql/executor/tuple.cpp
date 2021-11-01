@@ -181,9 +181,10 @@ void TupleSchema::print_aggregate(std::ostream& os,
       case INTS:
         os << *(int*)value.data;
         break;
-      case FLOATS:
-        os << *(float*)value.data;
-        break;
+      case FLOATS: {
+        FloatValue float_value(*(float*)value.data);
+        float_value.to_string(os);
+      } break;
       case DATES: {
         DateValue date_value(*(int*)value.data);
         date_value.to_string(os);

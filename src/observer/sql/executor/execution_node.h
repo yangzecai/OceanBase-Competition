@@ -95,11 +95,36 @@ class ProjectExeNode : public ExecutionNode {
   RC execute(TupleSet& tuple_set) override;
 
  private:
-  Trx* trx_ = nullptr;
+  Trx* trx_;
   TupleSchema tuple_schema_;
   TupleSet tuple_set_;
   ExecutionNode* sub_node_;
   const char* single_table_name_;
+};
+
+class AggregateExeNode : public ExecutionNode {
+ public:
+  AggregateExeNode();
+  virtual ~AggregateExeNode();
+
+  RC init(Trx* trx, SelectHandler* handler);
+  RC execute(TupleSet& tuple_set) override;
+
+ private:
+  struct AggregateResult {
+    std::shared_ptr<TupleValue> value;
+    int tuple_index;
+  };
+
+  RC calculate_aggregate(const TupleSet& tuple_set, int col,
+                         const Aggregate& aggregate,
+                         AggregateResult& result) const;
+  RC merge_aggregate(
+      const std::map<int, AggregateResult>& aggregate_results,
+      TupleSet& tuple_set) const;
+
+  Trx* trx_;
+  ExecutionNode* sub_node_;
 };
 
 #endif  //__OBSERVER_SQL_EXECUTOR_EXECUTION_NODE_H_
