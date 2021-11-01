@@ -104,6 +104,11 @@ RC SelectHandler::init_schemas() {
       }
     } else {
       const Aggregate* aggregate = selects_->aggregates + j++;
+      if (!aggregate->is_attr && aggregate->value.type == CHARS &&
+          strcmp((char*)aggregate->value.data, "*") == 0 &&
+          aggregate->type != AGG_COUNT) {
+        return RC::SCHEMA_FIELD_NAME_ILLEGAL;
+      }
       rc = add_aggregate_to_project_schema(aggregate);
       if (rc != RC::SUCCESS) {
         return rc;

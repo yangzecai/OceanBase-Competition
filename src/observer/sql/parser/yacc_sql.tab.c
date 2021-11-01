@@ -1711,10 +1711,10 @@ yyreduce:
   case 61: /* aggregate: agg_type LBRACE STAR RBRACE  */
 #line 416 "yacc_sql.y"
                                   {
-      RelAttr attr;
-			relation_attr_init(&attr, NULL, "*");
+      value_init_string(&CONTEXT->values[CONTEXT->value_length++], "*");
+      Value* value = &CONTEXT->values[CONTEXT->value_length - 1];
       Aggregate aggregate;
-      aggregate_init(&aggregate, CONTEXT->aggregate_type, 1, &attr, NULL);
+      aggregate_init(&aggregate, CONTEXT->aggregate_type, 0, NULL, value);
 			selects_append_aggregate(&CONTEXT->ssql->sstr.selection, &aggregate);
     }
 #line 1721 "yacc_sql.tab.c"

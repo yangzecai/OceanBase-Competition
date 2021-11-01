@@ -171,9 +171,13 @@ void TupleSchema::print_aggregate(std::ostream& os,
   } else {
     const Value& value = aggregate.value;
     switch (value.type) {
-      case CHARS:
-        os << '\'' << (char*)value.data << '\'';
-        break;
+      case CHARS: {
+        if (0 == strcmp((char*)value.data, "*")) {
+          os << (char*)value.data;
+        } else {
+          os << '\'' << (char*)value.data << '\'';
+        }
+      } break;
       case INTS:
         os << *(int*)value.data;
         break;
