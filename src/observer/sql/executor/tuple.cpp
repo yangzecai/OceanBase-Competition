@@ -11,8 +11,10 @@ See the Mulan PSL v2 for more details. */
 // Created by Wangyunlai on 2021/5/14.
 //
 
-#include "sql/executor/tuple.h"
+#include <algorithm>
+
 #include "common/log/log.h"
+#include "sql/executor/tuple.h"
 #include "storage/common/table.h"
 
 Tuple::Tuple(const Tuple& other) {
@@ -243,6 +245,11 @@ void TupleSet::print(std::ostream& os, bool multi_table) const {
     values.back()->to_string(os);
     os << std::endl;
   }
+}
+
+void TupleSet::sort_tuples(
+    std::function<bool(const Tuple& lhs, const Tuple& rhs)> less_func) {
+  std::sort(tuples_.begin(), tuples_.end(), less_func);
 }
 
 void TupleSet::set_schema(const TupleSchema& schema) { schema_ = schema; }

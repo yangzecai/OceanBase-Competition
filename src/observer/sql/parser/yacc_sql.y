@@ -112,6 +112,9 @@ ParserContext *get_context(yyscan_t scanner)
         AVG
         INNER
         JOIN
+        ORDER
+        BY
+        ASC
 
 %union {
   struct _Attr *attr;
@@ -354,7 +357,7 @@ update:			/*  update 语句的语法解析树*/
 		}
     ;
 select:				/*  select 语句的语法解析树*/
-    SELECT select_attr FROM ID rel_list inner_join_list where SEMICOLON
+    SELECT select_attr FROM ID rel_list inner_join_list where order SEMICOLON
 		{
 			// CONTEXT->ssql->sstr.selection.relations[CONTEXT->from_length++]=$4;
 			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4);
@@ -625,7 +628,60 @@ comOp:
     | GE { CONTEXT->comp = GREAT_EQUAL; }
     | NE { CONTEXT->comp = NOT_EQUAL; }
     ;
-
+order:
+    /* empty */
+    | ORDER BY order_attribute order_list {
+    }
+    ;
+order_attribute:
+    ID {
+      RelAttr attr;
+			relation_attr_init(&attr, NULL, $1);
+      Order order;
+      order_init(&order, ORDER_ASC, &attr);
+			selects_append_order(&CONTEXT->ssql->sstr.selection, &order);
+    }
+    | ID DOT ID {
+      RelAttr attr;
+			relation_attr_init(&attr, $1, $3);
+      Order order;
+      order_init(&order, ORDER_ASC, &attr);
+			selects_append_order(&CONTEXT->ssql->sstr.selection, &order);
+    }
+    | ID ASC {
+      RelAttr attr;
+			relation_attr_init(&attr, NULL, $1);
+      Order order;
+      order_init(&order, ORDER_ASC, &attr);
+			selects_append_order(&CONTEXT->ssql->sstr.selection, &order);
+    }
+    | ID DOT ID ASC {
+      RelAttr attr;
+			relation_attr_init(&attr, $1, $3);
+      Order order;
+      order_init(&order, ORDER_ASC, &attr);
+			selects_append_order(&CONTEXT->ssql->sstr.selection, &order);
+    }
+    | ID DESC {
+      RelAttr attr;
+			relation_attr_init(&attr, NULL, $1);
+      Order order;
+      order_init(&order, ORDER_DESC, &attr);
+			selects_append_order(&CONTEXT->ssql->sstr.selection, &order);
+    }
+    | ID DOT ID DESC {
+      RelAttr attr;
+			relation_attr_init(&attr, $1, $3);
+      Order order;
+      order_init(&order, ORDER_DESC, &attr);
+			selects_append_order(&CONTEXT->ssql->sstr.selection, &order);
+    }
+    ;
+order_list:
+    /* empty */
+    | COMMA order_attribute order_list {
+    }
+    ;
 load_data:
 		LOAD DATA INFILE SSS INTO TABLE ID SEMICOLON
 		{

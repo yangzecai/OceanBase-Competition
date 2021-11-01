@@ -210,6 +210,14 @@ void aggregate_destory(Aggregate* aggregate) {
   }
 }
 
+void order_init(Order* order, OrderType type, RelAttr* attr) {
+  order->type = type;
+  order->attr = *attr;
+}
+void order_destory(Order* order) {
+  relation_attr_destroy(&order->attr);
+}
+
 void selects_init(Selects* selects, ...);
 void selects_append_attribute(Selects* selects, RelAttr* rel_attr) {
   selects->attributes[selects->attr_num++] = *rel_attr;
@@ -234,6 +242,10 @@ void selects_append_conditions(Selects* selects, Condition conditions[],
   selects->condition_num = condition_num;
 }
 
+void selects_append_order(Selects* selects, Order* order) {
+  selects->orders[selects->order_num++] = *order;
+}
+
 void selects_destroy(Selects* selects) {
   for (size_t i = 0; i < selects->attr_num; i++) {
     relation_attr_destroy(&selects->attributes[i]);
@@ -254,6 +266,12 @@ void selects_destroy(Selects* selects) {
   for (size_t i = 0; i < selects->aggregate_num; ++i) {
     aggregate_destory(&selects->aggregates[i]);
   }
+  selects->aggregate_num = 0;
+
+  for (size_t i = 0; i < selects->order_num; ++i) {
+    order_destory(&selects->orders[i]);
+  }
+  selects->order_num = 0;
 }
 
 void inserts_init(Inserts* inserts, const char* relation_name, Value values[],

@@ -174,6 +174,85 @@ bool JoinExeNode::filter(const std::vector<TupleSet>& tuple_sets_raw,
   return true;
 }
 
+SortExeNode::SortExeNode()
+    : trx_(nullptr), selects_(nullptr), sub_node_(nullptr) {}
+
+SortExeNode::~SortExeNode() {}
+
+RC SortExeNode::init(Trx* trx, SelectHandler* handler) {
+  RC rc = RC::SUCCESS;
+  trx_ = trx;
+  selects_ = handler->selects_;
+  if (selects_->order_num == 0) {
+    return RC::GENERIC_ERROR;
+  }
+
+  if (handler->tables_.size() == 1) {
+    SelectExeNode* select_exe_node = new SelectExeNode();
+    sub_node_ = select_exe_node;
+    rc = select_exe_node->init(trx_, handler->tables_[0],
+                               std::move(handler->select_schemas_[0]),
+                               std::move(handler->select_filters_[0]));
+    if (rc != RC::SUCCESS) {
+      return rc;
+    }
+    handler->select_schemas_.clear();
+    handler->select_filters_.clear();
+  } else {
+    JoinExeNode* join_exe_node = new JoinExeNode();
+    sub_node_ = join_exe_node;
+    rc = join_exe_node->init(trx_, handler);
+    if (rc != RC::SUCCESS) {
+      return rc;
+    }
+  }
+
+  return rc;
+}
+
+RC SortExeNode::execute(TupleSet& tuple_set) {
+  tuple_set.clear();
+  RC rc = sub_node_->execute(tuple_set);
+  if (rc != RC::SUCCESS) {
+    return rc;
+  }
+
+  std::vector<std::pair<size_t, OrderType>> orders;
+  for (size_t i = 0; i < selects_->order_num; ++i) {
+    const Order& order = selects_->orders[i];
+    const char* table_name = nullptr;
+    if (selects_->relation_num == 1) {
+      table_name = selects_->relations[0];
+    } else {
+      table_name = order.attr.relation_name;
+    }
+    int index_of_field = tuple_set.schema().index_of_field(
+        table_name, order.attr.attribute_name);
+    if (index_of_field == -1) {
+      return RC::SCHEMA_FIELD_MISSING;
+    }
+    orders.push_back(std::make_pair(index_of_field, order.type));
+  }
+
+  tuple_set.sort_tuples([&orders](const Tuple& lhs, const Tuple& rhs) {
+    for (const auto& col_index_and_order : orders) {
+      size_t col_index = col_index_and_order.first;
+      const OrderType& order_type = col_index_and_order.second;
+      int cmp_result = lhs.get(col_index).compare(rhs.get(col_index));
+      if (cmp_result < 0) {
+        return order_type == ORDER_ASC ? true : false ;
+      } else if (cmp_result > 0) {
+        return order_type == ORDER_ASC ? false : true;
+      } else {
+        continue;
+      }
+    }
+    return false;
+  });
+
+  return rc;
+}
+
 ProjectExeNode::ProjectExeNode()
     : trx_(nullptr), sub_node_(nullptr), single_table_name_(nullptr) {}
 
@@ -188,6 +267,16 @@ RC ProjectExeNode::init(Trx* trx, SelectHandler* handler) {
   tuple_schema_ = std::move(handler->project_schema_);
   if (handler->tables_.size() == 1) {
     single_table_name_ = handler->tables_[0]->name();
+  }
+
+  if (handler->selects_->order_num > 0) {
+    SortExeNode* sort_exe_node = new SortExeNode();
+    sub_node_ = sort_exe_node;
+    rc = sort_exe_node->init(trx_, handler);
+    if (rc != RC::SUCCESS) {
+      return rc;
+    }
+  } else if (handler->tables_.size() == 1) {
     SelectExeNode* select_exe_node = new SelectExeNode();
     sub_node_ = select_exe_node;
     rc = select_exe_node->init(trx_, handler->tables_[0],

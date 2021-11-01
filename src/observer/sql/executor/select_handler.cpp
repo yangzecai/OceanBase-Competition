@@ -136,6 +136,18 @@ RC SelectHandler::init_schemas() {
     }
   }
 
+  for (size_t i = 0; i < selects_->order_num; ++i) {
+    const Order* order = selects_->orders + i;
+    rc = add_attribute_to_select_schemas(&order->attr);
+    if (rc != RC::SUCCESS) {
+      return rc;
+    }
+    rc = add_attribute_to_project_schema(&order->attr);
+    if (rc != RC::SUCCESS) {
+      return rc;
+    }
+  }
+
   return rc;
 }
 

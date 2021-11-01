@@ -14,6 +14,7 @@ See the Mulan PSL v2 for more details. */
 #ifndef __OBSERVER_SQL_EXECUTOR_TUPLE_H_
 #define __OBSERVER_SQL_EXECUTOR_TUPLE_H_
 
+#include <functional>
 #include <map>
 #include <memory>
 #include <vector>
@@ -154,6 +155,9 @@ class TupleSet {
   const std::vector<Tuple>& tuples() const;
 
   void print(std::ostream& os, bool multi_table) const;
+
+  void sort_tuples(
+      std::function<bool(const Tuple& lhs, const Tuple& rhs)> less_func);
 
  public:
   const TupleSchema& schema() const { return schema_; }

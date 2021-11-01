@@ -82,8 +82,12 @@ class SortExeNode : public ExecutionNode {
   SortExeNode();
   virtual ~SortExeNode();
 
-  RC init(Trx* trx, ExecutionNode*&& sub_nodes);
+  RC init(Trx* trx, SelectHandler* handler);
   RC execute(TupleSet& tuple_set) override;
+ private:
+  Trx* trx_;
+  const Selects* selects_;
+  ExecutionNode* sub_node_;
 };
 
 class ProjectExeNode : public ExecutionNode {
