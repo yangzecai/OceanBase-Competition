@@ -120,6 +120,10 @@ void JoinExeNode::add_tuple_dfs(TupleSet& tuple_set,
     return;
   }
 
+  if (!filter(tuple_sets_raw, tuple_indexes)) {
+    return;
+  }
+
   int tuple_set_index = tuple_indexes.size();
   int tuple_num = tuple_sets_raw[tuple_set_index].size();
   for (int i = 0; i < tuple_num; ++i) {
@@ -132,10 +136,14 @@ void JoinExeNode::add_tuple_dfs(TupleSet& tuple_set,
 bool JoinExeNode::filter(const std::vector<TupleSet>& tuple_sets_raw,
                          std::vector<int>& tuple_indexes) const {
   std::vector<const Tuple*> tuples_raw;
-  for (size_t i = 0; i < tuple_sets_raw.size(); ++i) {
+  for (size_t i = 0; i < tuple_indexes.size(); ++i) {
     tuples_raw.push_back(&tuple_sets_raw[i].get(tuple_indexes[i]));
   }
   for (const JoinFilter& condition : join_filter_) {
+    if ((size_t)condition.left_tuple_set_index >= tuple_indexes.size() ||
+        (size_t)condition.right_tuple_set_index >= tuple_indexes.size()) {
+      continue;
+    }
     const TupleValue& left_value =
         tuples_raw[condition.left_tuple_set_index]->get(
             condition.left_field_index);
