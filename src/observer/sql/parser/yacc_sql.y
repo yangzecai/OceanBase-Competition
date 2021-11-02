@@ -115,6 +115,7 @@ ParserContext *get_context(yyscan_t scanner)
         ORDER
         BY
         ASC
+        GROUP
 
 %union {
   struct _Attr *attr;
@@ -357,7 +358,7 @@ update:			/*  update 语句的语法解析树*/
 		}
     ;
 select:				/*  select 语句的语法解析树*/
-    SELECT select_attr FROM ID rel_list inner_join_list where order SEMICOLON
+    SELECT select_attr FROM ID rel_list inner_join_list where order group SEMICOLON
 		{
 			// CONTEXT->ssql->sstr.selection.relations[CONTEXT->from_length++]=$4;
 			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4);
@@ -680,6 +681,28 @@ order_attribute:
 order_list:
     /* empty */
     | COMMA order_attribute order_list {
+    }
+    ;
+group:
+    /* empty */
+    | GROUP BY group_attribute group_list {
+    }
+    ;
+group_attribute:
+    ID {
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $1);
+			selects_append_group(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+  	| ID DOT ID {
+			RelAttr attr;
+			relation_attr_init(&attr, $1, $3);
+			selects_append_group(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+    ;
+group_list:
+    /* empty */
+    | COMMA group_attribute group_list {
     }
     ;
 load_data:

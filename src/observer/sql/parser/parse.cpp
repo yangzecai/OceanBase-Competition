@@ -246,6 +246,10 @@ void selects_append_order(Selects* selects, Order* order) {
   selects->orders[selects->order_num++] = *order;
 }
 
+void selects_append_group(Selects* selects, RelAttr* rel_attr) {
+  selects->groups[selects->group_num++] = *rel_attr;
+}
+
 void selects_destroy(Selects* selects) {
   for (size_t i = 0; i < selects->attr_num; i++) {
     relation_attr_destroy(&selects->attributes[i]);
@@ -272,6 +276,11 @@ void selects_destroy(Selects* selects) {
     order_destory(&selects->orders[i]);
   }
   selects->order_num = 0;
+
+  for (size_t i = 0; i < selects->group_num; ++i) {
+    relation_attr_destroy(&selects->groups[i]);
+  }
+  selects->group_num = 0;
 }
 
 void inserts_init(Inserts* inserts, const char* relation_name, Value values[],

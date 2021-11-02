@@ -47,13 +47,23 @@ RC SelectHandler::init(const char* db, Query* sql,
     return rc;
   }
 
-  std::shared_ptr<AggregateExeNode> root_exe_node =
-      std::make_shared<AggregateExeNode>();
-  rc = root_exe_node->init(trx_, this);
-  if (rc != RC::SUCCESS) {
-    return rc;
+  if (selects_->aggregate_num == 0) {
+    std::shared_ptr<ProjectExeNode> root_exe_node =
+        std::make_shared<ProjectExeNode>();
+    rc = root_exe_node->init(trx_, this);
+    if (rc != RC::SUCCESS) {
+      return rc;
+    }
+    root_exe_node_ = root_exe_node;
+  } else {
+    std::shared_ptr<AggregateExeNode> root_exe_node =
+        std::make_shared<AggregateExeNode>();
+    rc = root_exe_node->init(trx_, this);
+    if (rc != RC::SUCCESS) {
+      return rc;
+    }
+    root_exe_node_ = root_exe_node;
   }
-  root_exe_node_ = root_exe_node;
   return rc;
 }
 
@@ -143,6 +153,18 @@ RC SelectHandler::init_schemas() {
       return rc;
     }
     rc = add_attribute_to_project_schema(&order->attr);
+    if (rc != RC::SUCCESS) {
+      return rc;
+    }
+  }
+
+  for (size_t i = 0; i < selects_->group_num; ++i) {
+    const RelAttr* order = selects_->groups + i;
+    rc = add_attribute_to_select_schemas(order);
+    if (rc != RC::SUCCESS) {
+      return rc;
+    }
+    rc = add_attribute_to_project_schema(order);
     if (rc != RC::SUCCESS) {
       return rc;
     }

@@ -89,6 +89,8 @@ typedef struct {
   Aggregate aggregates[MAX_NUM];
   size_t order_num;
   Order orders[MAX_NUM];
+  size_t group_num;
+  RelAttr groups[MAX_NUM];
 } Selects;
 
 // struct of insert
@@ -232,6 +234,7 @@ void selects_append_relation(Selects* selects, const char* relation_name);
 void selects_append_conditions(Selects* selects, Condition conditions[],
                                size_t condition_num);
 void selects_append_order(Selects* selects, Order* order);
+void selects_append_group(Selects* selects, RelAttr* rel_attr);
 void selects_destroy(Selects* selects);
 
 void inserts_init(Inserts* inserts, const char* relation_name, Value values[],

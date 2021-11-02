@@ -84,6 +84,7 @@ class SortExeNode : public ExecutionNode {
 
   RC init(Trx* trx, SelectHandler* handler);
   RC execute(TupleSet& tuple_set) override;
+
  private:
   Trx* trx_;
   const Selects* selects_;
@@ -120,15 +121,40 @@ class AggregateExeNode : public ExecutionNode {
     int tuple_index;
   };
 
-  RC calculate_aggregate(const TupleSet& tuple_set, int col,
-                         const Aggregate& aggregate,
+  using GroupId = std::vector<std::shared_ptr<TupleValue>>;
+  using Rows = std::vector<size_t>;
+  using Cols = std::vector<size_t>;
+  class GroupIdComparator {
+   public:
+    bool operator()(const GroupId& lhs, const GroupId& rhs) const {
+      for (size_t i = 0; i < lhs.size(); ++i) {
+        int cmp_result = lhs[i]->compare(*rhs[i]);
+        if (cmp_result < 0) {
+          return true;
+        } else if (cmp_result > 0) {
+          return false;
+        }
+      }
+      return false;
+    }
+  };
+  using Groups = std::map<GroupId, Rows, GroupIdComparator>;
+
+  RC calculate_aggregate(const TupleSet& tuple_set, const Rows& tuple_indexes,
+                         int col, const Aggregate& aggregate,
                          AggregateResult& result) const;
-  RC merge_aggregate(
-      const std::map<int, AggregateResult>& aggregate_results,
-      TupleSet& tuple_set) const;
+  RC merge_aggregate(const std::map<int, AggregateResult>& aggregate_results,
+                     const TupleSet& tuple_set_raw, const Rows& tuple_indexes,
+                     TupleSet& tuple_set) const;
+
+  void add_tuple_into_groups(Groups& groups, const TupleSet& tuple_set,
+                             size_t row) const;
+  GroupId get_group_id(const Tuple& tuple) const;
 
   Trx* trx_;
+  const Selects* selects_;
   ExecutionNode* sub_node_;
+  Cols group_attr_indexes_;
 };
 
 #endif  //__OBSERVER_SQL_EXECUTOR_EXECUTION_NODE_H_

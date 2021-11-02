@@ -240,7 +240,7 @@ RC SortExeNode::execute(TupleSet& tuple_set) {
       const OrderType& order_type = col_index_and_order.second;
       int cmp_result = lhs.get(col_index).compare(rhs.get(col_index));
       if (cmp_result < 0) {
-        return order_type == ORDER_ASC ? true : false ;
+        return order_type == ORDER_ASC ? true : false;
       } else if (cmp_result > 0) {
         return order_type == ORDER_ASC ? false : true;
       } else {
@@ -393,7 +393,8 @@ RC ProjectExeNode::execute(TupleSet& tuple_set) {
   return rc;
 }
 
-AggregateExeNode::AggregateExeNode() : trx_(nullptr), sub_node_(nullptr) {}
+AggregateExeNode::AggregateExeNode()
+    : trx_(nullptr), selects_(nullptr), sub_node_(nullptr) {}
 
 AggregateExeNode::~AggregateExeNode() {
   delete sub_node_;
@@ -403,57 +404,86 @@ AggregateExeNode::~AggregateExeNode() {
 RC AggregateExeNode::init(Trx* trx, SelectHandler* handler) {
   ProjectExeNode* project_exe_node = new ProjectExeNode();
   sub_node_ = project_exe_node;
+  selects_ = handler->selects_;
   return project_exe_node->init(trx_, handler);
 }
 
 RC AggregateExeNode::execute(TupleSet& tuple_set) {
-  tuple_set.clear();
-  RC rc = sub_node_->execute(tuple_set);
+  TupleSet tuple_set_raw;
+  RC rc = sub_node_->execute(tuple_set_raw);
   if (rc != RC::SUCCESS) {
     return rc;
   }
 
-  std::map<int, AggregateResult> aggregate_results;
-  const TupleSchema& schema = tuple_set.schema();
-  for (size_t col = 0; col < schema.fields().size(); ++col) {
-    if (schema.field(col).is_aggregate()) {
-      const Aggregate* aggregate = schema.aggregate(col);
-      if (aggregate == nullptr) {
-        return RC::SCHEMA_FIELD_MISSING;
-      }
-      AggregateResult result;
-      rc = calculate_aggregate(tuple_set, col, *aggregate, result);
-      if (rc != RC::SUCCESS) {
-        return rc;
-      }
-      aggregate_results[col] = result;
+  for (size_t i = 0; i < selects_->group_num; ++i) {
+    const RelAttr& attribute = selects_->groups[i];
+    const char* table_name = nullptr;
+    if (selects_->relation_num == 1) {
+      table_name = selects_->relations[0];
+    } else {
+      table_name = attribute.relation_name;
     }
+    group_attr_indexes_.push_back(tuple_set_raw.schema().index_of_field(
+        table_name, attribute.attribute_name));
   }
 
-  if (!aggregate_results.empty()) {
-    rc = merge_aggregate(aggregate_results, tuple_set);
-    if (rc != RC::SUCCESS) {
-      return rc;
+  Groups groups;
+  for (int i = 0; i < tuple_set_raw.size(); ++i) {
+    add_tuple_into_groups(groups, tuple_set_raw, i);
+  }
+
+  tuple_set.clear();
+  tuple_set.set_schema(tuple_set_raw.schema());
+  for (int row = 0; row < tuple_set_raw.size(); ++row) {
+    Groups::iterator group = groups.find(get_group_id(tuple_set_raw.get(row)));
+    if (group != groups.end()) {
+      std::map<int, AggregateResult> aggregate_results;
+      const TupleSchema& schema = tuple_set_raw.schema();
+      for (size_t col = 0; col < schema.fields().size(); ++col) {
+        if (schema.field(col).is_aggregate()) {
+          const Aggregate* aggregate = schema.aggregate(col);
+          if (aggregate == nullptr) {
+            return RC::SCHEMA_FIELD_MISSING;
+          }
+          AggregateResult result;
+          rc = calculate_aggregate(tuple_set_raw, group->second, col,
+                                   *aggregate, result);
+          if (rc != RC::SUCCESS) {
+            return rc;
+          }
+          aggregate_results[col] = result;
+        }
+      }
+      if (!aggregate_results.empty()) {
+        rc = merge_aggregate(aggregate_results, tuple_set_raw, group->second,
+                             tuple_set);
+        if (rc != RC::SUCCESS) {
+          return rc;
+        }
+      }
+      groups.erase(group);
     }
   }
 
   return RC::SUCCESS;
 }
 
-RC AggregateExeNode::calculate_aggregate(const TupleSet& tuple_set, int col,
+RC AggregateExeNode::calculate_aggregate(const TupleSet& tuple_set,
+                                         const Rows& tuple_indexes, int col,
                                          const Aggregate& aggregate,
                                          AggregateResult& result) const {
   if (aggregate.type == AGG_COUNT) {
-    result.value = std::make_shared<IntValue>(tuple_set.size());
+    result.value = std::make_shared<IntValue>(tuple_indexes.size());
     result.tuple_index = -1;
 
   } else if (aggregate.type == AGG_MAX) {
-    if (tuple_set.size() == 0) {
+    if (tuple_indexes.size() == 0) {
       return RC::GENERIC_ERROR;
     }
-    std::shared_ptr<TupleValue> max_value = tuple_set.get(0).get_pointer(col);
-    int max_row = 0;
-    for (int i = 1; i < tuple_set.size(); ++i) {
+    size_t max_row = tuple_indexes[0];
+    std::shared_ptr<TupleValue> max_value =
+        tuple_set.get(max_row).get_pointer(col);
+    for (size_t i : tuple_indexes) {
       const Tuple& tuple = tuple_set.get(i);
       if (tuple.get_pointer(col)->compare(*max_value) > 0) {
         max_value = tuple.get_pointer(col);
@@ -464,12 +494,13 @@ RC AggregateExeNode::calculate_aggregate(const TupleSet& tuple_set, int col,
     result.tuple_index = max_row;
 
   } else if (aggregate.type == AGG_MIN) {
-    if (tuple_set.size() == 0) {
+    if (tuple_indexes.size() == 0) {
       return RC::GENERIC_ERROR;
     }
-    std::shared_ptr<TupleValue> min_value = tuple_set.get(0).get_pointer(col);
-    int min_row = 0;
-    for (int i = 1; i < tuple_set.size(); ++i) {
+    size_t min_row = tuple_indexes[0];
+    std::shared_ptr<TupleValue> min_value =
+        tuple_set.get(min_row).get_pointer(col);
+    for (size_t i : tuple_indexes) {
       const Tuple& tuple = tuple_set.get(i);
       if (tuple.get_pointer(col)->compare(*min_value) < 0) {
         min_value = tuple.get_pointer(col);
@@ -480,23 +511,23 @@ RC AggregateExeNode::calculate_aggregate(const TupleSet& tuple_set, int col,
     result.tuple_index = min_row;
 
   } else if (aggregate.type == AGG_AVG) {
-    if (tuple_set.size() == 0) {
+    if (tuple_indexes.size() == 0) {
       return RC::GENERIC_ERROR;
     }
     float avg = 0;
     const std::type_info& value_type = typeid(tuple_set.get(0).get(col));
     if (typeid(IntValue) == value_type) {
       int sum = 0;
-      for (int row = 0; row < tuple_set.size(); ++row) {
+      for (size_t row : tuple_indexes) {
         sum += *(int*)tuple_set.get(row).get(col).get();
       }
-      avg = (float)sum / tuple_set.size();
+      avg = (float)sum / tuple_indexes.size();
     } else if (typeid(FloatValue) == value_type) {
       float sum = 0;
-      for (int row = 0; row < tuple_set.size(); ++row) {
+      for (size_t row : tuple_indexes) {
         sum += *(float*)tuple_set.get(row).get(col).get();
       }
-      avg = sum / tuple_set.size();
+      avg = sum / tuple_indexes.size();
     } else {
       return GENERIC_ERROR;
     }
@@ -512,8 +543,9 @@ RC AggregateExeNode::calculate_aggregate(const TupleSet& tuple_set, int col,
 
 RC AggregateExeNode::merge_aggregate(
     const std::map<int, AggregateResult>& aggregate_results,
+    const TupleSet& tuple_set_raw, const Rows& tuple_indexes,
     TupleSet& tuple_set) const {
-  if (tuple_set.size() == 0 && tuple_set.schema().has_attribute()) {
+  if (tuple_indexes.size() == 0 && tuple_set_raw.schema().has_attribute()) {
     return RC::GENERIC_ERROR;
   }
 
@@ -528,12 +560,12 @@ RC AggregateExeNode::merge_aggregate(
     }
   }
   if (base_tuple_index == -1) {
-    if (tuple_set.size() > 0) {
-      base_tuple_index = 0;
+    if (tuple_indexes.size() > 0) {
+      base_tuple_index = tuple_indexes[0];
     }
   }
   if (base_tuple_index != -1) {
-    const Tuple& base_tuple = tuple_set.get(base_tuple_index);
+    const Tuple& base_tuple = tuple_set_raw.get(base_tuple_index);
     for (int i = 0; i < base_tuple.size(); ++i) {
       tuple.add(base_tuple.get_pointer(i));
     }
@@ -550,7 +582,23 @@ RC AggregateExeNode::merge_aggregate(
       return rc;
     }
   }
-  tuple_set.clear_tuples();
+
   tuple_set.add(std::move(tuple));
   return rc;
+}
+
+void AggregateExeNode::add_tuple_into_groups(Groups& groups,
+                                             const TupleSet& tuple_set,
+                                             size_t row) const {
+  GroupId group_id = get_group_id(tuple_set.get(row));
+  groups[group_id].push_back(row);
+}
+
+AggregateExeNode::GroupId AggregateExeNode::get_group_id(
+    const Tuple& tuple) const {
+  GroupId group_id;
+  for (size_t col : group_attr_indexes_) {
+    group_id.emplace_back(tuple.get_pointer(col));
+  }
+  return group_id;
 }
