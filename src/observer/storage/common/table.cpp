@@ -247,6 +247,13 @@ RC Table::insert_record(Trx* trx, Record* record) {
   if (trx != nullptr) {
     trx->init_trx_info(this, *record);
   }
+
+  rc = check_unique_index_valid(record->data);
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("unqie index check failed.");
+    return rc;
+  }
+
   rc = record_handler_->insert_record(record->data, table_meta_.record_size(),
                                       &record->rid);
   if (rc != RC::SUCCESS) {
@@ -306,12 +313,15 @@ RC Table::insert_record(Trx* trx, int value_num, int tuple_num,
   }
 
   for (auto& iter : record_data) {
+    if (rc != RC::SUCCESS) {
+      delete[] iter;
+      continue;
+    }
     Record record;
     record.data = iter;
     // record.valid = true;
     rc = insert_record(trx, &record);
     delete[] iter;
-    if (rc != RC::SUCCESS) return rc;
   }
   return rc;
 }
@@ -517,13 +527,23 @@ class IndexInserter {
  public:
   explicit IndexInserter(Index* index) : index_(index) {}
 
-  RC insert_index(const Record* record) {
-    return index_->insert_entry(record->data, &record->rid);
-  }
+  RC insert_index(const Record* record);
 
  private:
   Index* index_;
 };
+
+RC IndexInserter::insert_index(const Record* record) {
+  RC rc = RC::SUCCESS;
+  if (index_->is_unique()) {
+    RID rid;
+    rc = index_->get_entry(record->data, &rid);
+    if (rc == RC::SUCCESS) {
+      return rc = RC::RECORD_INVALID_KEY;
+    }
+  }
+  return index_->insert_entry(record->data, &record->rid);
+}
 
 static RC insert_index_record_reader_adapter(Record* record, void* context) {
   IndexInserter& inserter = *(IndexInserter*)context;
@@ -531,7 +551,7 @@ static RC insert_index_record_reader_adapter(Record* record, void* context) {
 }
 
 RC Table::create_index(Trx* trx, const char* index_name,
-                       const char* attribute_name) {
+                       const char* attribute_name, const bool index_is_unique) {
   if (index_name == nullptr || common::is_blank(index_name) ||
       attribute_name == nullptr || common::is_blank(attribute_name)) {
     return RC::INVALID_ARGUMENT;
@@ -554,6 +574,12 @@ RC Table::create_index(Trx* trx, const char* index_name,
 
   // 创建索引相关数据
   BplusTreeIndex* index = new BplusTreeIndex();
+  if (index_is_unique) {
+    index->set_unique(true);
+  } else {
+    index->set_unique(false);
+  }
+
   std::string index_file =
       index_data_file(base_dir_.c_str(), name(), index_name);
   rc = index->create(index_file.c_str(), new_index_meta, *field_meta);
@@ -858,6 +884,22 @@ Index* Table::find_index(const char* index_name) const {
     }
   }
   return nullptr;
+}
+
+RC Table::check_unique_index_valid(const char* record) {
+  RC rc = RC::SUCCESS;
+  for (Index* index : indexes_) {
+    if (index->is_unique()) {
+      RID rid;
+      rc = index->get_entry(record, &rid);
+      if (rc == RC::SUCCESS) {
+        return rc = RC::RECORD_INVALID_KEY;
+      } else {
+        rc = RC::SUCCESS;
+      }
+    }
+  }
+  return rc;
 }
 
 IndexScanner* Table::find_index_for_scan(const DefaultConditionFilter& filter) {

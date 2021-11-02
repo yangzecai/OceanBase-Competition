@@ -39,8 +39,13 @@ class Index {
 
   const IndexMeta& index_meta() const { return index_meta_; }
 
+  bool is_unique() const { return unique_; }
+
+  void set_unique(const bool is_unique) { unique_ = is_unique; }
+
   virtual RC insert_entry(const char* record, const RID* rid) = 0;
   virtual RC delete_entry(const char* record, const RID* rid) = 0;
+  virtual RC get_entry(const char* record, RID* rid) = 0;
 
   virtual IndexScanner* create_scanner(CompOp comp_op, const char* value) = 0;
 
@@ -52,6 +57,9 @@ class Index {
  protected:
   IndexMeta index_meta_;
   FieldMeta field_meta_;  /// 当前实现仅考虑一个字段的索引
+
+ protected:
+  bool unique_{false};
 };
 
 class IndexScanner {

@@ -78,6 +78,7 @@ QUOTE            [\'\"]
 [Aa][Vv][Gg]                             RETURN_TOKEN(AVG);
 [Ii][Nn][Nn][Ee][Rr]                     RETURN_TOKEN(INNER);
 [Jj][Oo][Ii][Nn]                         RETURN_TOKEN(JOIN);
+[Uu][Nn][Ii][Qq][Uu][Ee]                 RETURN_TOKEN(UNIQUE);
 {ID}							                       yylval->string=strdup(yytext); RETURN_TOKEN(ID);
 "("								                       RETURN_TOKEN(LBRACE);
 ")"								                       RETURN_TOKEN(RBRACE);

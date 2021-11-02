@@ -63,7 +63,8 @@ class Table {
   RC scan_record(Trx* trx, ConditionFilter* filter, int limit, void* context,
                  void (*record_reader)(const char* data, void* context));
 
-  RC create_index(Trx* trx, const char* index_name, const char* attribute_name);
+  RC create_index(Trx* trx, const char* index_name, const char* attribute_name,
+                  const bool index_is_unique);
 
  public:
   const char* name() const;
@@ -111,6 +112,7 @@ class Table {
 
  private:
   Index* find_index(const char* index_name) const;
+  RC check_unique_index_valid(const char* record);
 
  private:
   std::string base_dir_;
