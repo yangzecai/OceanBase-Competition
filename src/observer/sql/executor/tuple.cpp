@@ -11,8 +11,10 @@ See the Mulan PSL v2 for more details. */
 // Created by Wangyunlai on 2021/5/14.
 //
 
-#include "sql/executor/tuple.h"
+#include <algorithm>
+
 #include "common/log/log.h"
+#include "sql/executor/tuple.h"
 #include "storage/common/table.h"
 
 Tuple::Tuple(const Tuple& other) {
@@ -45,6 +47,7 @@ void Tuple::add(float value) { add(new FloatValue(value)); }
 
 void Tuple::add(const char* s, int len) { add(new StringValue(s, len)); }
 
+void Tuple::add(int timestamp, bool date) { add(new DateValue(timestamp)); }
 ////////////////////////////////////////////////////////////////////////////////
 
 std::string TupleField::to_string() const {
@@ -81,6 +84,11 @@ void TupleSchema::add_if_not_exists(AttrType type, const char* table_name,
   add(type, table_name, field_name);
 }
 
+void TupleSchema::add(const Aggregate& aggregate) {
+  aggregates_.insert(std::make_pair(fields_.size(), aggregate));
+  add(UNDEFINED, "", "");
+}
+
 void TupleSchema::append(const TupleSchema& other) {
   fields_.reserve(fields_.size() + other.fields_.size());
   for (const auto& field : other.fields_) {
@@ -110,18 +118,86 @@ void TupleSchema::print(std::ostream& os, bool multi_table) const {
   for (std::vector<TupleField>::const_iterator iter = fields_.begin(),
                                                end = --fields_.end();
        iter != end; ++iter) {
-    if (multi_table) {
-      os << iter->table_name() << ".";
+    if (iter->is_aggregate()) {
+      print_aggregate(os, iter - fields_.begin());
+    } else {
+      if (multi_table) {
+        os << iter->table_name() << ".";
+      }
+      os << iter->field_name();
     }
-    os << iter->field_name() << " | ";
+    os << " | ";
   }
 
-  if (multi_table) {
-    os << fields_.back().table_name() << ".";
+  if (fields_.back().is_aggregate()) {
+    print_aggregate(os, fields_.end() - fields_.begin() - 1);
+  } else {
+    if (multi_table) {
+      os << fields_.back().table_name() << ".";
+    }
+    os << fields_.back().field_name();
   }
-  os << fields_.back().field_name() << std::endl;
+  os << std::endl;
 }
 
+void TupleSchema::print_aggregate(std::ostream& os,
+                                  size_t aggregate_index) const {
+  if (aggregates_.find(aggregate_index) == aggregates_.end()) {
+    return;
+  }
+  const Aggregate& aggregate = aggregates_.at(aggregate_index);
+  switch (aggregate.type) {
+    case AGG_COUNT:
+      os << "count";
+      break;
+    case AGG_MAX:
+      os << "max";
+      break;
+    case AGG_MIN:
+      os << "min";
+      break;
+    case AGG_AVG:
+      os << "avg";
+      break;
+    default:
+      LOG_PANIC("should not print this message");
+      break;
+  }
+  os << '(';
+  if (aggregate.is_attr) {
+    const RelAttr& attribute = aggregate.attr;
+    if (attribute.relation_name != nullptr) {
+      os << attribute.relation_name << '.';
+    }
+    os << attribute.attribute_name;
+  } else {
+    const Value& value = aggregate.value;
+    switch (value.type) {
+      case CHARS: {
+        if (0 == strcmp((char*)value.data, "*")) {
+          os << (char*)value.data;
+        } else {
+          os << '\'' << (char*)value.data << '\'';
+        }
+      } break;
+      case INTS:
+        os << *(int*)value.data;
+        break;
+      case FLOATS: {
+        FloatValue float_value(*(float*)value.data);
+        float_value.to_string(os);
+      } break;
+      case DATES: {
+        DateValue date_value(*(int*)value.data);
+        date_value.to_string(os);
+      } break;
+      default:
+        LOG_PANIC("should not print this message");
+        break;
+    }
+  }
+  os << ')';
+}
 /////////////////////////////////////////////////////////////////////////////
 TupleSet::TupleSet(TupleSet&& other)
     : tuples_(std::move(other.tuples_)), schema_(other.schema_) {
@@ -171,6 +247,11 @@ void TupleSet::print(std::ostream& os, bool multi_table) const {
   }
 }
 
+void TupleSet::sort_tuples(
+    std::function<bool(const Tuple& lhs, const Tuple& rhs)> less_func) {
+  std::sort(tuples_.begin(), tuples_.end(), less_func);
+}
+
 void TupleSet::set_schema(const TupleSchema& schema) { schema_ = schema; }
 
 const TupleSchema& TupleSet::get_schema() const { return schema_; }
@@ -209,17 +290,7 @@ void TupleRecordConverter::add_record(const char* record) {
       } break;
       case DATES: {
         int value = *(int*)(record + field_meta->offset());
-        time_t timestamp = static_cast<time_t>(value);
-        int year, month, day;
-        tm* time = gmtime(&timestamp);
-
-        year = time->tm_year + 1900;
-        month = time->tm_mon + 1;
-        day = time->tm_mday;
-
-        char s[16];
-        sprintf(s, "%04d-%02d-%02d", year, month, day);
-        tuple.add(s, strlen(s));
+        tuple.add(value, true);
       } break;
       default: {
         LOG_PANIC("Unsupported field type. type=%d", field_meta->type());

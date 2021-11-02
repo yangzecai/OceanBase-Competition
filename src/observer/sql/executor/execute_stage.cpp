@@ -25,6 +25,7 @@ See the Mulan PSL v2 for more details. */
 #include "execute_stage.h"
 #include "session/session.h"
 #include "sql/executor/execution_node.h"
+#include "sql/executor/select_handler.h"
 #include "sql/executor/tuple.h"
 #include "sql/executor/tuple_sets_joiner.h"
 #include "storage/common/condition_filter.h"
@@ -214,220 +215,17 @@ void end_trx_if_need(Session* session, Trx* trx, bool all_right) {
   }
 }
 
-// 这里没有对输入的某些信息做合法性校验，比如查询的列名、where条件中的列名等，没有做必要的合法性校验
-// 需要补充上这一部分.
-// 校验部分也可以放在resolve，不过跟execution放一起也没有关系
 RC ExecuteStage::do_select(const char* db, Query* sql,
                            SessionEvent* session_event) {
   RC rc = RC::SUCCESS;
-  Session* session = session_event->get_client()->session;
-  Trx* trx = session->current_trx();
-  const Selects& selects = sql->sstr.selection;
-
-  std::stringstream ss;  
-  if (selects.relation_num == 1) {
-    if (selects.attr_num != 0) {
-      std::vector<TupleSet> tuple_sets;
-      rc = make_single_table_tuple_sets(db, selects, session_event, tuple_sets);
-      if (rc != RC::SUCCESS) {
-        session_event->set_response("FAILURE\n");
-        return rc;
-      }
-      tuple_sets[0].print(ss, false);
-    } else if (selects.aggregate_num != 0) {
-      session_event->set_response("FAILURE\n");
-      return RC::GENERIC_ERROR;
-    } else {
-      LOG_ERROR("should not print this message");
-      session_event->set_response("FAILURE\n");
-      return RC::GENERIC_ERROR;
-    }
-  } else if (selects.relation_num > 1) {
-    TupleSet tuple_set;
-    rc = make_multi_table_tuple_set(db, selects, session_event, tuple_set);
-    if (rc != RC::SUCCESS) {
-      session_event->set_response("FAILURE\n");
-      return rc;
-    }
-    tuple_set.print(ss, true);
-  } else {
-    LOG_ERROR("should not print this message");
-    session_event->set_response("FAILURE\n");
+  SelectHandler select_handler;
+  rc = select_handler.init(db, sql, session_event);
+  if (rc != RC::SUCCESS) {
     return rc;
   }
-
-  session_event->set_response(ss.str());
-  end_trx_if_need(session, trx, true);
-  return rc;
-}
-
-bool match_table(const Selects& selects, const char* table_name_in_condition,
-                 const char* table_name_to_match) {
-  if (table_name_in_condition != nullptr) {
-    return 0 == strcmp(table_name_in_condition, table_name_to_match);
-  }
-
-  return selects.relation_num == 1;
-}
-
-static RC schema_add_field(Table* table, const char* field_name,
-                           TupleSchema& schema) {
-  const FieldMeta* field_meta = table->table_meta().field(field_name);
-  if (nullptr == field_meta) {
-    LOG_WARN("No such field. %s.%s", table->name(), field_name);
-    return RC::SCHEMA_FIELD_MISSING;
-  }
-
-  schema.add_if_not_exists(field_meta->type(), table->name(),
-                           field_meta->name());
-  return RC::SUCCESS;
-}
-
-// 把所有的表和只跟这张表关联的condition都拿出来，生成最底层的select 执行节点
-RC create_selection_executor(Trx* trx, const Selects& selects, const char* db,
-                             const char* table_name,
-                             SelectExeNode& select_node) {
-  // 列出跟这张表关联的Attr
-  TupleSchema schema;
-  Table* table = DefaultHandler::get_default().find_table(db, table_name);
-  if (nullptr == table) {
-    LOG_WARN("No such table [%s] in db [%s]", table_name, db);
-    return RC::SCHEMA_TABLE_NOT_EXIST;
-  }
-
-  for (int i = selects.attr_num - 1; i >= 0; i--) {
-    const RelAttr& attr = selects.attributes[i];
-    if (nullptr == attr.relation_name ||
-        0 == strcmp(table_name, attr.relation_name)) {
-      if (0 == strcmp("*", attr.attribute_name)) {
-        // 列出这张表所有字段
-        TupleSchema::from_table(table, schema);
-        break;  // 没有校验，给出* 之后，再写字段的错误
-      } else {
-        // 列出这张表相关字段
-        RC rc = schema_add_field(table, attr.attribute_name, schema);
-        if (rc != RC::SUCCESS) {
-          return rc;
-        }
-      }
-    }
-  }
-
-  // 找出仅与此表相关的过滤条件, 或者都是值的过滤条件
-  std::vector<DefaultConditionFilter*> condition_filters;
-  for (size_t i = 0; i < selects.condition_num; i++) {
-    const Condition& condition = selects.conditions[i];
-    if ((condition.left_is_attr == 0 &&
-         condition.right_is_attr == 0) ||  // 两边都是值
-        (condition.left_is_attr == 1 && condition.right_is_attr == 0 &&
-         match_table(selects, condition.left_attr.relation_name,
-                     table_name)) ||  // 左边是属性右边是值
-        (condition.left_is_attr == 0 && condition.right_is_attr == 1 &&
-         match_table(selects, condition.right_attr.relation_name,
-                     table_name)) ||  // 左边是值，右边是属性名
-        (condition.left_is_attr == 1 && condition.right_is_attr == 1 &&
-         match_table(selects, condition.left_attr.relation_name, table_name) &&
-         match_table(selects, condition.right_attr.relation_name,
-                     table_name))  // 左右都是属性名，并且表名都符合
-    ) {
-      DefaultConditionFilter* condition_filter = new DefaultConditionFilter();
-      RC rc = condition_filter->init(*table, condition);
-      if (rc != RC::SUCCESS) {
-        delete condition_filter;
-        for (DefaultConditionFilter*& filter : condition_filters) {
-          delete filter;
-        }
-        return rc;
-      }
-      condition_filters.push_back(condition_filter);
-    }
-  }
-
-  return select_node.init(trx, table, std::move(schema),
-                          std::move(condition_filters));
-}
-
-RC make_single_table_tuple_sets(const char* db, const Selects& selects,
-                                SessionEvent* session_event,
-                                std::vector<TupleSet>& tuple_sets) {
-  RC rc = RC::SUCCESS;
-  Session* session = session_event->get_client()->session;
-  Trx* trx = session->current_trx();
-
-  std::vector<SelectExeNode*> select_nodes;
-  for (size_t i = 0; i < selects.relation_num; i++) {
-    const char* table_name = selects.relations[i];
-    SelectExeNode* select_node = new SelectExeNode;
-    rc = create_selection_executor(trx, selects, db, table_name, *select_node);
-    if (rc != RC::SUCCESS) {
-      delete select_node;
-      for (SelectExeNode*& tmp_node : select_nodes) {
-        delete tmp_node;
-      }
-      end_trx_if_need(session, trx, false);
-      return rc;
-    }
-    select_nodes.push_back(select_node);
-  }
-
-  if (select_nodes.empty()) {
-    LOG_ERROR("No table given");
-    end_trx_if_need(session, trx, false);
-    return RC::SQL_SYNTAX;
-  }
-
-  for (SelectExeNode*& node : select_nodes) {
-    TupleSet tuple_set;
-    rc = node->execute(tuple_set);
-    if (rc != RC::SUCCESS) {
-      for (SelectExeNode*& tmp_node : select_nodes) {
-        delete tmp_node;
-      }
-      end_trx_if_need(session, trx, false);
-      return rc;
-    } else {
-      tuple_sets.push_back(std::move(tuple_set));
-    }
-  }
-
-  for (SelectExeNode*& tmp_node : select_nodes) {
-    delete tmp_node;
-  }
-  return rc;
-}
-
-RC make_multi_table_tuple_set(const char* db, const Selects& selects,
-                              SessionEvent* session_event,
-                              TupleSet& tuple_set) {
-  if (selects.relation_num <= 1) {
-    return RC::GENERIC_ERROR;
-  }
-
-  char star[2] = "*";
-  RC rc = RC::SUCCESS;
-  Session* session = session_event->get_client()->session;
-  Trx* trx = session->current_trx();
-
-  Selects pre_selects = selects;
-  pre_selects.attr_num = 1;
-  pre_selects.attributes->relation_name = nullptr;
-  pre_selects.attributes->attribute_name = star;
-  std::vector<TupleSet> tuple_sets;
-  rc = make_single_table_tuple_sets(db, pre_selects, session_event, tuple_sets);
-  if (rc != SUCCESS) {
+  rc = select_handler.handle();
+  if (rc != RC::SUCCESS) {
     return rc;
   }
-
-  TupleSetsJoiner joiner;
-
-  rc = joiner.init(db, &selects, tuple_sets);
-  if (rc != SUCCESS) {
-    end_trx_if_need(session, trx, true);
-    return rc;
-  }
-
-  joiner.execute();
-  joiner.swap_from(tuple_set);
-
   return rc;
 }

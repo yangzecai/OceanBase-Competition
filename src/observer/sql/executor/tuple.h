@@ -14,6 +14,8 @@ See the Mulan PSL v2 for more details. */
 #ifndef __OBSERVER_SQL_EXECUTOR_TUPLE_H_
 #define __OBSERVER_SQL_EXECUTOR_TUPLE_H_
 
+#include <functional>
+#include <map>
 #include <memory>
 #include <vector>
 
@@ -38,6 +40,7 @@ class Tuple {
   void add(int value);
   void add(float value);
   void add(const char* s, int len);
+  void add(int timestamp, bool date);
 
   const std::vector<std::shared_ptr<TupleValue>>& values() const {
     return values_;
@@ -51,6 +54,14 @@ class Tuple {
     return values_[index];
   }
 
+  RC set_pointer(size_t index, const std::shared_ptr<TupleValue>& other) {
+    if (values_.size() <= index) {
+      return RC::GENERIC_ERROR;
+    }
+    values_[index] = other;
+    return RC::SUCCESS;
+  }
+
  private:
   std::vector<std::shared_ptr<TupleValue>> values_;
 };
@@ -60,12 +71,19 @@ class TupleField {
   TupleField(AttrType type, const char* table_name, const char* field_name)
       : type_(type), table_name_(table_name), field_name_(field_name) {}
 
+  bool operator==(const TupleField& rhs) const {
+    return type_ == rhs.type_ && table_name_ == rhs.table_name_ &&
+           field_name_ == rhs.field_name_;
+  }
+
   AttrType type() const { return type_; }
 
   const char* table_name() const { return table_name_.c_str(); }
   const char* field_name() const { return field_name_.c_str(); }
 
   std::string to_string() const;
+
+  bool is_aggregate() const { return field_name_.empty(); }
 
  private:
   AttrType type_;
@@ -81,23 +99,36 @@ class TupleSchema {
   void add(AttrType type, const char* table_name, const char* field_name);
   void add_if_not_exists(AttrType type, const char* table_name,
                          const char* field_name);
+  void add(const Aggregate& aggregate);
   // void merge(const TupleSchema &other);
   void append(const TupleSchema& other);
 
   const std::vector<TupleField>& fields() const { return fields_; }
 
   const TupleField& field(int index) const { return fields_[index]; }
+  const Aggregate* aggregate(int index) const {
+    if (aggregates_.find(index) != aggregates_.end()) {
+      return &aggregates_.at(index);
+    } else {
+      return nullptr;
+    }
+  }
 
   int index_of_field(const char* table_name, const char* field_name) const;
   void clear() { fields_.clear(); }
 
   void print(std::ostream& os, bool multi_table) const;
 
+  bool has_attribute() const { return fields_.size() != aggregates_.size(); }
+
  public:
   static void from_table(const Table* table, TupleSchema& schema);
 
  private:
+  void print_aggregate(std::ostream& os, size_t aggregate_index) const;
+
   std::vector<TupleField> fields_;
+  std::map<size_t, Aggregate> aggregates_;
 };
 
 class TupleSet {
@@ -116,6 +147,7 @@ class TupleSet {
   void add(Tuple&& tuple);
 
   void clear();
+  void clear_tuples() { tuples_.clear(); }
 
   bool is_empty() const;
   int size() const;
@@ -123,6 +155,9 @@ class TupleSet {
   const std::vector<Tuple>& tuples() const;
 
   void print(std::ostream& os, bool multi_table) const;
+
+  void sort_tuples(
+      std::function<bool(const Tuple& lhs, const Tuple& rhs)> less_func);
 
  public:
   const TupleSchema& schema() const { return schema_; }
