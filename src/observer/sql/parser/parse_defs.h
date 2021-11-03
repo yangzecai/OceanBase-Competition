@@ -40,7 +40,7 @@ typedef enum {
 } CompOp;
 
 //属性值类型
-typedef enum { UNDEFINED, CHARS, INTS, FLOATS, DATES, NULLS} AttrType;
+typedef enum { UNDEFINED, CHARS, INTS, FLOATS, DATES, NULLS } AttrType;
 
 //属性值
 typedef struct _Value {
@@ -213,6 +213,7 @@ void value_init_integer(Value* value, int v);
 void value_init_float(Value* value, float v);
 void value_init_string(Value* value, const char* v);
 void value_init_date(Value* value, const char* v);
+void value_init_null(Value* value);
 void value_destroy(Value* value);
 
 void condition_init(Condition* condition, CompOp comp, int left_is_attr,

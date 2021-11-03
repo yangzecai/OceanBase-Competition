@@ -335,16 +335,19 @@ value_list:
 	  }
     ;
 value:
-    NUMBER{	
+    NUMBER {	
   		value_init_integer(&CONTEXT->values[CONTEXT->value_length++], $1);
 		}
-    |FLOAT{
+    | FLOAT {
   		value_init_float(&CONTEXT->values[CONTEXT->value_length++], $1);
 		}
-    |SSS {
+    | SSS {
 			$1 = substr($1,1,strlen($1)-2);
   		value_init_string(&CONTEXT->values[CONTEXT->value_length++], $1);
 		}
+    | NULL_T {
+      value_init_null(&CONTEXT->values[CONTEXT->value_length++]);
+    }
     ;
     
 delete:		/*  delete 语句的语法解析树*/

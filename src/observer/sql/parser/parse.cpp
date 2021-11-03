@@ -144,6 +144,10 @@ void value_init_date(Value* value, const char* v) {
   value->data = malloc(sizeof(t));
   memcpy(value->data, &t, sizeof(t));
 }
+void value_init_null(Value* value) {
+  value->type = NULLS;
+  value->data = strdup("null");
+}
 void value_destroy(Value* value) {
   value->type = UNDEFINED;
   free(value->data);

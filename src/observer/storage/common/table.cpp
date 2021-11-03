@@ -305,23 +305,24 @@ RC Table::insert_record(Trx* trx, int value_num, int tuple_num,
     return RC::INVALID_ARGUMENT;
   }
 
-  std::vector<char*> record_data;
-  RC rc = make_records(value_num, tuple_num, values, record_data);
+  std::vector<char*> records_data;
+  RC rc = make_records(value_num, tuple_num, values, records_data);
   if (rc != RC::SUCCESS) {
     LOG_ERROR("Failed to create a record. rc=%d:%s", rc, strrc(rc));
     return rc;
   }
 
-  for (auto& iter : record_data) {
-    if (rc != RC::SUCCESS) {
-      delete[] iter;
-      continue;
-    }
+  for (size_t i = 0; i < records_data.size(); ++i) {
     Record record;
-    record.data = iter;
-    // record.valid = true;
+    record.data = records_data[i];
     rc = insert_record(trx, &record);
-    delete[] iter;
+    delete[] records_data[i];
+    if (rc != RC::SUCCESS) {
+      for (++i; i < records_data.size(); ++i) {
+        delete[] records_data[i];
+      }
+      return rc;
+    }
   }
   return rc;
 }
@@ -341,9 +342,11 @@ RC Table::make_record(int value_num, const Value* values, char*& record_out) {
     const FieldMeta* field = table_meta_.field(i + normal_field_start_index);
     const Value& value = values[i];
     if (field->type() != value.type) {
-      LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
-                field->name(), field->type(), value.type);
-      return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+      if (!(value.type == NULLS && field->nullable())) {
+        LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
+                  field->name(), field->type(), value.type);
+        return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+      }
     }
   }
 

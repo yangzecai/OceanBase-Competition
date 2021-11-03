@@ -29,13 +29,14 @@ class FieldMeta {
   ~FieldMeta() = default;
 
   RC init(const char* name, AttrType attr_type, int attr_offset, int attr_len,
-          NullType null_type, bool visible);
+          bool nullable, bool visible);
 
  public:
   const char* name() const;
   AttrType type() const;
   int offset() const;
   int len() const;
+  bool nullable() const;
   bool visible() const;
 
  public:
@@ -50,7 +51,7 @@ class FieldMeta {
   AttrType attr_type_;
   int attr_offset_;
   int attr_len_;
-  NullType null_type_;
+  bool nullable_;
   bool visible_;
 };
 #endif  // __OBSERVER_STORAGE_COMMON_FIELD_META_H__
