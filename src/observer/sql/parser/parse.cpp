@@ -182,10 +182,11 @@ void condition_destroy(Condition* condition) {
 }
 
 void attr_info_init(AttrInfo* attr_info, const char* name, AttrType type,
-                    size_t length) {
+                    size_t length, NullType null_type) {
   attr_info->name = strdup(name);
   attr_info->type = type;
   attr_info->length = length;
+  attr_info->null_type = null_type;
 }
 void attr_info_destroy(AttrInfo* attr_info) {
   free(attr_info->name);

@@ -117,6 +117,9 @@ ParserContext *get_context(yyscan_t scanner)
         BY
         ASC
         GROUP
+        NOT
+        NULL_T
+        NULLABLE_T
 
 %union {
   struct _Attr *attr;
@@ -141,6 +144,7 @@ ParserContext *get_context(yyscan_t scanner)
 %type <condition1> condition;
 %type <value1> value;
 %type <number> number;
+%type <number> null_type;
 
 %%
 
@@ -266,23 +270,15 @@ attr_def:
     ID_get type LBRACE number RBRACE 
 		{
 			AttrInfo attribute;
-			attr_info_init(&attribute, CONTEXT->id, $2, $4);
+			attr_info_init(&attribute, CONTEXT->id, $2, $4, NOT_NULL);
 			create_table_append_attribute(&CONTEXT->ssql->sstr.create_table, &attribute);
-			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name =(char*)malloc(sizeof(char));
-			// strcpy(CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name, CONTEXT->id); 
-			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].type = $2;  
-			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].length = $4;
 			CONTEXT->value_length++;
 		}
-    |ID_get type
+    | ID_get type null_type
 		{
 			AttrInfo attribute;
-			attr_info_init(&attribute, CONTEXT->id, $2, 4);
+			attr_info_init(&attribute, CONTEXT->id, $2, 4, $3);
 			create_table_append_attribute(&CONTEXT->ssql->sstr.create_table, &attribute);
-			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name=(char*)malloc(sizeof(char));
-			// strcpy(CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name, CONTEXT->id); 
-			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].type=$2;  
-			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].length=4; // default attribute length
 			CONTEXT->value_length++;
 		}
     ;
@@ -290,19 +286,23 @@ number:
 		NUMBER {$$ = $1;}
 		;
 type:
-	INT_T { $$=INTS; }
-       | STRING_T { $$=CHARS; }
-       | FLOAT_T { $$=FLOATS; }
-       | DATE_T { $$=DATES; }
-       ;
+    INT_T { $$=INTS; }
+    | STRING_T { $$=CHARS; }
+    | FLOAT_T { $$=FLOATS; }
+    | DATE_T { $$=DATES; }
+    ;
 ID_get:
-	ID 
-	{
-		char *temp=$1; 
-		snprintf(CONTEXT->id, sizeof(CONTEXT->id), "%s", temp);
-	}
-	;
-
+    ID
+    {
+      char *temp=$1; 
+      snprintf(CONTEXT->id, sizeof(CONTEXT->id), "%s", temp);
+    }
+    ;
+null_type:
+    /* empty */ { $$=NOT_NULL; }
+    | NULLABLE_T { $$=NULLABLE; }
+    | NOT NULL_T { $$=NOT_NULL; }
+    ;
 	
 insert:				/*insert   语句的语法解析树*/
     INSERT INTO ID VALUES LBRACE value value_list RBRACE value_tuple SEMICOLON

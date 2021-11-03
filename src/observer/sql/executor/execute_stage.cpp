@@ -27,7 +27,6 @@ See the Mulan PSL v2 for more details. */
 #include "sql/executor/execution_node.h"
 #include "sql/executor/select_handler.h"
 #include "sql/executor/tuple.h"
-#include "sql/executor/tuple_sets_joiner.h"
 #include "storage/common/condition_filter.h"
 #include "storage/common/table.h"
 #include "storage/default/default_handler.h"
