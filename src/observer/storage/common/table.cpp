@@ -358,6 +358,13 @@ RC Table::make_record(int value_num, const Value* values, char*& record_out) {
     const FieldMeta* field = table_meta_.field(i + normal_field_start_index);
     const Value& value = values[i];
     memcpy(record + field->offset(), value.data, field->len());
+    if (field->nullable()) {
+      if (value.type == NULLS) {
+        memset(record + field->offset() + field->len(), 1, 1);
+      } else {
+        memset(record + field->offset() + field->len(), 0, 1);
+      }
+    }
   }
 
   record_out = record;
@@ -689,9 +696,13 @@ RC Table::check_attribute_value_valid(const char* attribute_name,
 
   for (int i = table_meta_.sys_field_num(); i < table_meta_.field_num(); ++i) {
     const FieldMeta* field = table_meta_.field(i);
-    if (strcmp(field->name(), attribute_name) == 0 &&
-        value->type == field->type()) {
-      return RC::SUCCESS;
+    if (strcmp(field->name(), attribute_name) == 0) {
+      if (value->type == field->type() ||
+          (value->type == NULLS && field->nullable())) {
+        return RC::SUCCESS;
+      } else {
+        break;
+      }
     }
   }
   return RC::SCHEMA_FIELD_MISSING;
@@ -701,12 +712,11 @@ class RecordUpdater {
  public:
   RecordUpdater(Table& table, Trx* trx, const char* attribute_name,
                 const Value* value)
-      : table_(table), trx_(trx), offset_(0), len_(0), data_(value->data) {
+      : table_(table), trx_(trx), field_meta_(nullptr), value_(value) {
     for (int i = table.table_meta_.sys_field_num();
          i < table.table_meta_.field_num(); ++i) {
       if (strcmp(table.table_meta_.field(i)->name(), attribute_name) == 0) {
-        offset_ = table.table_meta_.field(i)->offset();
-        len_ = table.table_meta_.field(i)->len();
+        field_meta_ = table.table_meta_.field(i);
         break;
       }
     }
@@ -714,7 +724,15 @@ class RecordUpdater {
 
   RC update_record(Record* record) {
     RC rc = RC::SUCCESS;
-    memcpy(record->data + offset_, data_, len_);
+    if (value_->type == NULLS) {
+      memset(record->data + field_meta_->offset() + field_meta_->len(), 1, 1);
+    } else {
+      memcpy(record->data + field_meta_->offset(), value_->data,
+             field_meta_->len());
+      if (field_meta_->nullable()) {
+        memset(record->data + field_meta_->offset() + field_meta_->len(), 0, 1);
+      }
+    }
     rc = table_.update_record(trx_, record);
     if (rc == RC::SUCCESS) {
       updated_count_++;
@@ -728,9 +746,8 @@ class RecordUpdater {
   Table& table_;
   Trx* trx_;
   int updated_count_ = 0;
-  int offset_;
-  int len_;
-  void* data_;
+  const FieldMeta* field_meta_;
+  const Value* value_;
 };
 
 static RC record_reader_update_adapter(Record* record, void* context) {

@@ -84,16 +84,17 @@ RC TableMeta::init(const char* name, int field_num,
 
   for (int i = 0; i < field_num; i++) {
     const AttrInfo& attr_info = attributes[i];
-    rc = fields_[i + sys_fields_.size()].init(
-        attr_info.name, attr_info.type, field_offset, attr_info.length,
-        attr_info.null_type == NULLABLE ? true : false, true);
+    bool nullable = attr_info.null_type == NULLABLE ? true : false;
+    rc = fields_[i + sys_fields_.size()].init(attr_info.name, attr_info.type,
+                                              field_offset, attr_info.length,
+                                              nullable, true);
     if (rc != RC::SUCCESS) {
       LOG_ERROR("Failed to init field meta. table name=%s, field name: %s",
                 name, attr_info.name);
       return rc;
     }
 
-    field_offset += attr_info.length;
+    field_offset += attr_info.length + (nullable ? 1 : 0);
   }
 
   record_size_ = field_offset;

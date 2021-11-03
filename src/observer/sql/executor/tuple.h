@@ -40,7 +40,8 @@ class Tuple {
   void add(int value);
   void add(float value);
   void add(const char* s, int len);
-  void add(int timestamp, bool date);
+  void add_date(int timestamp);
+  void add_null();
 
   const std::vector<std::shared_ptr<TupleValue>>& values() const {
     return values_;

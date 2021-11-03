@@ -47,7 +47,9 @@ void Tuple::add(float value) { add(new FloatValue(value)); }
 
 void Tuple::add(const char* s, int len) { add(new StringValue(s, len)); }
 
-void Tuple::add(int timestamp, bool date) { add(new DateValue(timestamp)); }
+void Tuple::add_date(int timestamp) { add(new DateValue(timestamp)); }
+
+void Tuple::add_null() { add(new NullValue()); }
 ////////////////////////////////////////////////////////////////////////////////
 
 std::string TupleField::to_string() const {
@@ -275,6 +277,11 @@ void TupleRecordConverter::add_record(const char* record) {
   for (const TupleField& field : schema.fields()) {
     const FieldMeta* field_meta = table_meta.field(field.field_name());
     assert(field_meta != nullptr);
+    if (field_meta->nullable() &&
+        '\1' == *(record + field_meta->offset() + field_meta->len())) {
+      tuple.add_null();
+      continue;
+    }
     switch (field_meta->type()) {
       case INTS: {
         int value = *(int*)(record + field_meta->offset());
@@ -290,7 +297,7 @@ void TupleRecordConverter::add_record(const char* record) {
       } break;
       case DATES: {
         int value = *(int*)(record + field_meta->offset());
-        tuple.add(value, true);
+        tuple.add_date(value);
       } break;
       default: {
         LOG_PANIC("Unsupported field type. type=%d", field_meta->type());
