@@ -774,8 +774,7 @@ RC Table::update_record(Trx* trx, const char* attribute_name,
 RC Table::update_record(Trx* trx, Record* record) {
   RC rc = RC::SUCCESS;
   if (trx != nullptr) {
-    // rc = trx->delete_record(this, record);
-    // FIXME: 事务
+    rc = trx->update_record(this, record);
   } else {
     rc = update_entry_of_indexes(record->data, record->rid);
     if (rc != RC::SUCCESS) {
@@ -786,6 +785,31 @@ RC Table::update_record(Trx* trx, Record* record) {
     }
   }
   return rc;
+}
+
+RC Table::commit_update(Trx* trx, const RID& rid) {
+  RC rc = RC::SUCCESS;
+  Record record;
+  rc = record_handler_->get_record(&rid, &record);
+  if (rc != RC::SUCCESS) {
+    return rc;
+  }
+  rc = update_entry_of_indexes(record.data, record.rid);
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to update indexes of record(rid=%d.%d). rc=%d:%s",
+              rid.page_num, rid.slot_num, rc, strrc(rc));  // panic?
+  }
+
+  rc = record_handler_->update_record(&record);
+  if (rc != RC::SUCCESS) {
+    return rc;
+  }
+
+  return rc;
+}
+
+RC Table::rollback_update(Trx* trx, const RID& rid) {
+  return RC::GENERIC_ERROR;
 }
 
 class RecordDeleter {

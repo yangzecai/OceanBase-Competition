@@ -80,8 +80,10 @@ class Table {
  public:
   RC commit_insert(Trx* trx, const RID& rid);
   RC commit_delete(Trx* trx, const RID& rid);
+  RC commit_update(Trx* trx, const RID& rid);
   RC rollback_insert(Trx* trx, const RID& rid);
   RC rollback_delete(Trx* trx, const RID& rid);
+  RC rollback_update(Trx* trx, const RID& rid);
 
  private:
   RC scan_record(Trx* trx, ConditionFilter* filter, int limit, void* context,
