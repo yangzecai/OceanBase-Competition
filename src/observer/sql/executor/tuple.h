@@ -119,9 +119,7 @@ class TupleSchema {
   void clear() { fields_.clear(); }
 
   void print(std::ostream& os, bool multi_table) const;
-
-  bool has_attribute() const { return fields_.size() != aggregates_.size(); }
-
+  
  public:
   static void from_table(const Table* table, TupleSchema& schema);
 
