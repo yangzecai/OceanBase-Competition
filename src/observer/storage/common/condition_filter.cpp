@@ -37,7 +37,7 @@ DefaultConditionFilter::~DefaultConditionFilter() {}
 
 RC DefaultConditionFilter::init(const ConDesc& left, const ConDesc& right,
                                 AttrType attr_type, CompOp comp_op) {
-  if (attr_type < CHARS || attr_type > DATES) {
+  if (attr_type < CHARS || attr_type > NULLS) {
     LOG_ERROR("Invalid condition with unsupported attribute type: %d",
               attr_type);
     return RC::INVALID_ARGUMENT;
@@ -75,6 +75,7 @@ RC DefaultConditionFilter::init(Table& table, const Condition& condition) {
     }
     left.attr_length = field_left->len();
     left.attr_offset = field_left->offset();
+    left.attr_nullable = field_left->nullable();
 
     left.value = nullptr;
 
@@ -82,10 +83,16 @@ RC DefaultConditionFilter::init(Table& table, const Condition& condition) {
   } else {
     left.is_attr = false;
     left.value = condition.left_value.data;  // 校验type 或者转换类型
+    if (condition.left_value.type == NULLS) {
+      left.value_is_null = true;
+    } else {
+      left.value_is_null = false;
+    }
     type_left = condition.left_value.type;
 
     left.attr_length = 0;
     left.attr_offset = 0;
+    left.attr_nullable = false;
   }
 
   if (1 == condition.right_is_attr) {
@@ -99,16 +106,24 @@ RC DefaultConditionFilter::init(Table& table, const Condition& condition) {
     }
     right.attr_length = field_right->len();
     right.attr_offset = field_right->offset();
+    right.attr_nullable = field_right->nullable();
+
     type_right = field_right->type();
 
     right.value = nullptr;
   } else {
     right.is_attr = false;
     right.value = condition.right_value.data;
+    if (condition.right_value.type == NULLS) {
+      right.value_is_null = true;
+    } else {
+      right.value_is_null = false;
+    }
     type_right = condition.right_value.type;
 
     right.attr_length = 0;
     right.attr_offset = 0;
+    right.attr_nullable = false;
   }
 
   // 校验和转换
@@ -118,7 +133,9 @@ RC DefaultConditionFilter::init(Table& table, const Condition& condition) {
   //  }
   // NOTE：这里没有实现不同类型的数据比较，比如整数跟浮点数之间的对比
   // 但是选手们还是要实现。这个功能在预选赛中会出现
-  if (type_left != type_right) {
+  if (type_right == NULLS || type_right == NULLS) {
+    type_left = NULLS;
+  } else if (type_left != type_right) {
     return RC::SCHEMA_FIELD_TYPE_MISMATCH;
   }
 
@@ -126,6 +143,23 @@ RC DefaultConditionFilter::init(Table& table, const Condition& condition) {
 }
 
 bool DefaultConditionFilter::filter(const Record& rec) const {
+  if (attr_type_ == NULLS) {
+    if (comp_op_ != IS_NULL && comp_op_ != IS_NOT_NULL) {
+      return false;
+    }
+    if (left_.is_attr && comp_op_ == IS_NOT_NULL &&
+        (!left_.attr_nullable ||
+         '\0' == *(rec.data + left_.attr_offset + left_.attr_length))) {
+      return true;
+    } else if (left_.is_attr && comp_op_ == IS_NULL && left_.attr_nullable &&
+               '\1' == *(rec.data + left_.attr_offset + left_.attr_length)) {
+      return true;
+    } else if (!left_.is_attr && left_.value_is_null) {
+      return comp_op_ == IS_NULL;
+    }
+    return false;
+  }
+
   char* left_value = nullptr;
   char* right_value = nullptr;
 
