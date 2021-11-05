@@ -996,7 +996,8 @@ IndexScanner* Table::find_index_for_scan(const DefaultConditionFilter& filter) {
   }
 
   return index->create_scanner(filter.comp_op(),
-                               (const char*)value_cond_desc->value);
+                               (const char*)value_cond_desc->value,
+                               value_cond_desc->value_is_null);
 }
 
 IndexScanner* Table::find_index_for_scan(const ConditionFilter* filter) {

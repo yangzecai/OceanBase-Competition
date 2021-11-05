@@ -27,7 +27,8 @@ RC BplusTreeIndex::create(const char* file_name, const IndexMeta& index_meta,
     return rc;
   }
 
-  rc = index_handler_.create(file_name, field_meta.type(), field_meta.len());
+  rc = index_handler_.create(file_name, field_meta.type(), field_meta.len(),
+                             field_meta.nullable());
   if (RC::SUCCESS == rc) {
     inited_ = true;
   }
@@ -83,10 +84,10 @@ RC BplusTreeIndex::get_entry(const char* record, RID* rid) {
   return index_handler_.get_entry(record + field_meta_.offset(), rid);
 }
 
-IndexScanner* BplusTreeIndex::create_scanner(CompOp comp_op,
-                                             const char* value) {
+IndexScanner* BplusTreeIndex::create_scanner(CompOp comp_op, const char* value,
+                                             bool value_is_null) {
   BplusTreeScanner* bplus_tree_scanner = new BplusTreeScanner(index_handler_);
-  RC rc = bplus_tree_scanner->open(comp_op, value);
+  RC rc = bplus_tree_scanner->open(comp_op, value, value_is_null);
   if (rc != RC::SUCCESS) {
     LOG_ERROR("Failed to open index scanner. rc=%d:%s", rc, strrc(rc));
     delete bplus_tree_scanner;

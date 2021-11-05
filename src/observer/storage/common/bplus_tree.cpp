@@ -37,7 +37,7 @@ RC BplusTreeHandler::sync() {
 }
 
 RC BplusTreeHandler::create(const char* file_name, AttrType attr_type,
-                            int attr_length) {
+                            int attr_length, bool nullable) {
   BPPageHandle page_handle;
   IndexNode* root;
   char* pdata;
@@ -76,7 +76,8 @@ RC BplusTreeHandler::create(const char* file_name, AttrType attr_type,
     return rc;
   }
   IndexFileHeader* file_header = (IndexFileHeader*)pdata;
-  file_header->attr_length = attr_length;
+  file_header->attr_length = attr_length + (nullable ? 1 : 0);
+  file_header->attr_nullable = nullable;
   file_header->key_length = attr_length + sizeof(RID);
   file_header->attr_type = attr_type;
   file_header->node_num = 1;
@@ -1601,6 +1602,7 @@ RC BplusTreeHandler::print_tree() {
 }
 
 RC BplusTreeHandler::find_first_index_satisfied(CompOp compop, const char* key,
+                                                bool key_is_null,
                                                 PageNum* page_num,
                                                 int* rididx) {
   BPPageHandle page_handle;
@@ -1610,6 +1612,21 @@ RC BplusTreeHandler::find_first_index_satisfied(CompOp compop, const char* key,
   RC rc;
   int i, tmp;
   RID rid;
+
+  if (key_is_null) {
+    if ((compop == IS_NULL && file_header_.attr_nullable) ||
+        compop == IS_NOT_NULL) {
+      rc = get_first_leaf_page(page_num);
+      if (rc != SUCCESS) {
+        return rc;
+      }
+      *rididx = 0;
+      return SUCCESS;
+    } else {
+      return RC::RECORD_EOF;
+    }
+  }
+
   if (compop == LESS_THAN || compop == LESS_EQUAL || compop == NOT_EQUAL) {
     rc = get_first_leaf_page(page_num);
     if (rc != SUCCESS) {
@@ -1741,7 +1758,8 @@ RC BplusTreeHandler::get_first_leaf_page(PageNum* leaf_page) {
 BplusTreeScanner::BplusTreeScanner(BplusTreeHandler& index_handler)
     : index_handler_(index_handler) {}
 
-RC BplusTreeScanner::open(CompOp comp_op, const char* value) {
+RC BplusTreeScanner::open(CompOp comp_op, const char* value,
+                          bool value_is_null) {
   RC rc;
   if (opened_) {
     return RC::RECORD_OPENNED;
@@ -1755,10 +1773,21 @@ RC BplusTreeScanner::open(CompOp comp_op, const char* value) {
               index_handler_.file_header_.attr_length);
     return RC::NOMEM;
   }
-  memcpy(value_copy, value, index_handler_.file_header_.attr_length);
+
+  memcpy(value_copy, value,
+         index_handler_.file_header_.attr_length -
+             (index_handler_.file_header_.attr_nullable ? 1 : 0));
+  if (index_handler_.file_header_.attr_nullable) {
+    if (value_is_null) {
+      memset(value_copy, 1, 1);
+    } else {
+      memset(value_copy, 0, 1);
+    }
+  }
   value_ = value_copy;  // free value_
+  value_is_null_ = value_is_null;
   rc = index_handler_.find_first_index_satisfied(
-      comp_op, value, &next_page_num_, &index_in_node_);
+      comp_op, value_, value_is_null_, &next_page_num_, &index_in_node_);
   if (rc != SUCCESS) {
     if (rc == RC::RECORD_EOF) {
       next_page_num_ = -1;
@@ -1885,6 +1914,26 @@ bool BplusTreeScanner::satisfy_condition(const char* pkey) {
 
   if (comp_op_ == NO_OP) {
     return true;
+  }
+
+  if (value_is_null_) {
+    if (comp_op_ == IS_NULL) {
+      if (index_handler_.file_header_.attr_nullable &&
+          '\1' == *(pkey + index_handler_.file_header_.attr_length - 1)) {
+        return true;
+      } else {
+        return false;
+      }
+    } else if (comp_op_ == IS_NOT_NULL) {
+      if (!index_handler_.file_header_.attr_nullable ||
+          '\0' == *(pkey + index_handler_.file_header_.attr_length - 1)) {
+        return true;
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
   }
 
   AttrType attr_type = index_handler_.file_header_.attr_type;

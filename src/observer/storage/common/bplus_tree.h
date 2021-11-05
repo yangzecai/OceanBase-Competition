@@ -19,6 +19,7 @@ See the Mulan PSL v2 for more details. */
 
 struct IndexFileHeader {
   int attr_length;
+  bool attr_nullable;
   int key_length;
   AttrType attr_type;
   PageNum root_page;  // 初始时，root_page一定是1
@@ -55,7 +56,8 @@ class BplusTreeHandler {
    * 此函数创建一个名为fileName的索引。
    * attrType描述被索引属性的类型，attrLength描述被索引属性的长度
    */
-  RC create(const char* file_name, AttrType attr_type, int attr_length);
+  RC create(const char* file_name, AttrType attr_type, int attr_length,
+            bool attr_nullable);
 
   /**
    * 删除indexHandle对应的索引文件
@@ -119,7 +121,8 @@ class BplusTreeHandler {
   RC redistribute_nodes(PageNum left_page, PageNum right_page);
 
   RC find_first_index_satisfied(CompOp comp_op, const char* pkey,
-                                PageNum* page_num, int* rididx);
+                                bool pkey_is_null, PageNum* page_num,
+                                int* rididx);
   RC get_first_leaf_page(PageNum* leaf_page);
 
  private:
@@ -144,7 +147,7 @@ class BplusTreeScanner {
    * compOp和*value指定比较符和比较值，indexScan为初始化后的索引扫描结构指针
    * 没有带两个边界的范围扫描
    */
-  RC open(CompOp comp_op, const char* value);
+  RC open(CompOp comp_op, const char* value, bool value_is_null);
 
   /**
    * 用于继续索引扫描，获得下一个满足条件的索引项，
@@ -173,6 +176,7 @@ class BplusTreeScanner {
   bool opened_ = false;
   CompOp comp_op_ = NO_OP;       // 用于比较的操作符
   const char* value_ = nullptr;  // 与属性行比较的值
+  bool value_is_null_ = false;
   int num_fixed_pages_ = -1;  // 固定在缓冲区中的页，与指定的页面固定策略有关
   int pinned_page_count_ = 0;  // 实际固定在缓冲区的页面数
   BPPageHandle
