@@ -16,11 +16,13 @@ typedef struct ParserContext {
   size_t condition_length;
   size_t from_length;
   size_t value_length;
+  size_t id_list_length;
   size_t tuple_num;
   Value values[MAX_NUM];
   Condition conditions[MAX_NUM];
   CompOp comp;
-	char id[MAX_NUM];
+  char id[MAX_NUM];
+  char *id_list[MAX_NUM];
   AggregateType aggregate_type;
 } ParserContext;
 
@@ -45,6 +47,7 @@ void yyerror(yyscan_t scanner, const char *str)
   context->from_length = 0;
   context->select_length = 0;
   context->value_length = 0;
+  context->id_list_length = 0;
   context->tuple_num = 0;
   context->ssql->sstr.insertion.value_num = 0;
   printf("parse sql failed. error=%s", str);
@@ -223,9 +226,12 @@ desc_table:
     ;
 
 create_index:		/*create index 语句的语法解析树*/
-    CREATE unique_index INDEX ID ON ID LBRACE ID RBRACE SEMICOLON
+    CREATE unique_index INDEX ID ON ID LBRACE ID id_list RBRACE SEMICOLON
 		{
-			create_index_init(&CONTEXT->ssql->sstr.create_index, $4, $6, $8);
+            CONTEXT->id_list[0] = $8;
+            CONTEXT->id_list_length++;
+			create_index_init(&CONTEXT->ssql->sstr.create_index, $4, $6, CONTEXT->id_list, CONTEXT->id_list_length);
+			CONTEXT->id_list_length = 0;
 		}
     ;
 unique_index:
@@ -237,6 +243,13 @@ unique_index:
         {
             CONTEXT->ssql->flag = SCF_CREATE_UNIQUE_INDEX;//"create_unique_index";
         }
+    ;
+id_list:
+    /* empty */
+    | COMMA ID id_list  {
+            CONTEXT->id_list_length++;
+            CONTEXT->id_list[CONTEXT->id_list_length] = $2;
+	  }
     ;
 
 drop_index:			/*drop index 语句的语法解析树*/
