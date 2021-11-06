@@ -136,7 +136,7 @@ class NullValue : public TupleValue {
 
   void to_string(std::ostream& os) const override { os << "null"; }
 
-  int compare(const TupleValue& other) const override { return false; }
+  int compare(const TupleValue& other) const override { return -2; }
 
   const void* get() const override { return nullptr; }
 };

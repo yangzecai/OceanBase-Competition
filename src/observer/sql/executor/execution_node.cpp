@@ -150,6 +150,11 @@ bool JoinExeNode::filter(const std::vector<TupleSet>& tuple_sets_raw,
     const TupleValue& right_value =
         tuples_raw[condition.right_tuple_set_index]->get(
             condition.right_field_index);
+
+    if (left_value.get() == nullptr || right_value.get() == nullptr) {
+      return false;
+    }
+
     int cmp_result = left_value.compare(right_value);
     bool pass = false;
     switch (condition.comp) {
