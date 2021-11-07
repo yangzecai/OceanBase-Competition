@@ -63,8 +63,8 @@ class Table {
   RC scan_record(Trx* trx, ConditionFilter* filter, int limit, void* context,
                  void (*record_reader)(const char* data, void* context));
 
-  RC create_index(Trx* trx, const char* index_name, const char* attribute_name,
-                  const bool index_is_unique);
+  RC create_index(Trx* trx, const char* index_name, const char** attribute_names,
+                  size_t attribute_num, bool index_is_unique);
 
  public:
   const char* name() const;
@@ -91,6 +91,7 @@ class Table {
                           RC (*record_reader)(Record* record, void* context));
   IndexScanner* find_index_for_scan(const ConditionFilter* filter);
   IndexScanner* find_index_for_scan(const DefaultConditionFilter& filter);
+  IndexScanner* find_multi_index_for_scan(std::vector<DefaultConditionFilter>& filters);
 
   RC insert_record(Trx* trx, Record* record);
   RC delete_record(Trx* trx, Record* record);

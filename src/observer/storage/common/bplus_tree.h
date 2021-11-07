@@ -18,9 +18,10 @@ See the Mulan PSL v2 for more details. */
 #include "storage/default/disk_buffer_pool.h"
 
 struct IndexFileHeader {
-  int attr_length;
   int key_length;
-  AttrType attr_type;
+  int attr_lengths[MAX_NUM];
+  AttrType attr_types[MAX_NUM];
+  int attr_num;
   PageNum root_page;  // 初始时，root_page一定是1
   int node_num;
   int order;
@@ -55,7 +56,8 @@ class BplusTreeHandler {
    * 此函数创建一个名为fileName的索引。
    * attrType描述被索引属性的类型，attrLength描述被索引属性的长度
    */
-  RC create(const char* file_name, AttrType attr_type, int attr_length);
+  RC create(const char* file_name, std::vector<AttrType>& attr_type,
+            std::vector<int>& attr_length);
 
   /**
    * 删除indexHandle对应的索引文件
@@ -79,19 +81,21 @@ class BplusTreeHandler {
    * 参数pData指向要插入的属性值，参数rid标识该索引项对应的元组，
    * 即向索引中插入一个值为（*pData，rid）的键值对
    */
-  RC insert_entry(const char* pkey, const RID* rid);
+  RC insert_entry(const char* pkey, const std::vector<int>& offsets,
+                  const RID* rid);
 
   /**
    * 从IndexHandle句柄对应的索引中删除一个值为（*pData，rid）的索引项
    * @return RECORD_INVALID_KEY 指定值不存在
    */
-  RC delete_entry(const char* pkey, const RID* rid);
+  RC delete_entry(const char* pkey, const std::vector<int>& offsets,
+                  const RID* rid);
 
   /**
    * 获取指定值的record
    * @param rid  返回值，记录记录所在的页面号和slot
    */
-  RC get_entry(const char* pkey, RID* rid);
+  RC get_entry(const char* pkey, const std::vector<int>& offsets, RID* rid);
 
   RC sync();
 

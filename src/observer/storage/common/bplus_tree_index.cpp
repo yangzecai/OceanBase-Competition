@@ -17,17 +17,23 @@ See the Mulan PSL v2 for more details. */
 BplusTreeIndex::~BplusTreeIndex() noexcept { close(); }
 
 RC BplusTreeIndex::create(const char* file_name, const IndexMeta& index_meta,
-                          const FieldMeta& field_meta) {
+                          const std::vector<const FieldMeta*>& field_metas) {
   if (inited_) {
     return RC::RECORD_OPENNED;
   }
 
-  RC rc = Index::init(index_meta, field_meta);
+  RC rc = Index::init(index_meta, field_metas);
   if (rc != RC::SUCCESS) {
     return rc;
   }
 
-  rc = index_handler_.create(file_name, field_meta.type(), field_meta.len());
+  std::vector<AttrType> fieled_types;
+  std::vector<int> field_lens;
+  for (const FieldMeta* field : field_metas) {
+    fieled_types.emplace_back(field->type());
+    field_lens.emplace_back(field->len());
+  }
+  rc = index_handler_.create(file_name, fieled_types, field_lens);
   if (RC::SUCCESS == rc) {
     inited_ = true;
   }
@@ -47,7 +53,7 @@ RC BplusTreeIndex::remove() {
 }
 
 RC BplusTreeIndex::open(const char* file_name, const IndexMeta& index_meta,
-                        const FieldMeta& field_meta) {
+                        const std::vector<const FieldMeta*>& field_meta) {
   if (inited_) {
     return RC::RECORD_OPENNED;
   }
@@ -72,15 +78,27 @@ RC BplusTreeIndex::close() {
 }
 
 RC BplusTreeIndex::insert_entry(const char* record, const RID* rid) {
-  return index_handler_.insert_entry(record + field_meta_.offset(), rid);
+  std::vector<int> offsets;
+  for (int i = 0; i < field_meta_.size(); i++) {
+    offsets.emplace_back(field_meta_[i].offset());
+  }
+  return index_handler_.insert_entry(record, offsets, rid);
 }
 
 RC BplusTreeIndex::delete_entry(const char* record, const RID* rid) {
-  return index_handler_.delete_entry(record + field_meta_.offset(), rid);
+  std::vector<int> offsets;
+  for (int i = 0; i < field_meta_.size(); i++) {
+    offsets.emplace_back(field_meta_[i].offset());
+  }
+  return index_handler_.delete_entry(record, offsets, rid);
 }
 
 RC BplusTreeIndex::get_entry(const char* record, RID* rid) {
-  return index_handler_.get_entry(record + field_meta_.offset(), rid);
+  std::vector<int> offsets;
+  for (int i = 0; i < field_meta_.size(); i++) {
+    offsets.emplace_back(field_meta_[i].offset());
+  }
+  return index_handler_.get_entry(record, offsets, rid);
 }
 
 IndexScanner* BplusTreeIndex::create_scanner(CompOp comp_op,

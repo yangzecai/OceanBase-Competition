@@ -212,7 +212,8 @@ void DefaultStorageStage::handle_event(StageEvent* event) {
       const CreateIndex& create_index = sql->sstr.create_index;
       rc = handler_->create_index(
           current_trx, current_db, create_index.relation_name,
-          create_index.index_name, create_index.attribute_name, false);
+          create_index.index_name, (const char**)create_index.attribute_name,
+          create_index.attribute_num, false);
       snprintf(response, sizeof(response), "%s\n",
                rc == RC::SUCCESS ? "SUCCESS" : "FAILURE");
     } break;
@@ -220,7 +221,8 @@ void DefaultStorageStage::handle_event(StageEvent* event) {
       const CreateIndex& create_index = sql->sstr.create_index;
       rc = handler_->create_index(
           current_trx, current_db, create_index.relation_name,
-          create_index.index_name, create_index.attribute_name, true);
+          create_index.index_name, (const char**)create_index.attribute_name,
+          create_index.attribute_num, true);
       snprintf(response, sizeof(response), "%s\n",
                rc == RC::SUCCESS ? "SUCCESS" : "FAILURE");
     } break;

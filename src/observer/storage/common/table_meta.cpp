@@ -145,9 +145,21 @@ const IndexMeta* TableMeta::index(const char* name) const {
   return nullptr;
 }
 
-const IndexMeta* TableMeta::find_index_by_field(const char* field) const {
+const IndexMeta* TableMeta::find_index_by_field(
+    const std::vector<std::string>& field) const {
   for (const IndexMeta& index : indexes_) {
-    if (0 == strcmp(index.field(), field)) {
+    std::vector<std::string> index_field = index.field();
+    if (index_field.size() != field.size()) {
+      continue;
+    }
+    bool flag = true;
+    for (int i = 0; i < field.size(); i++) {
+      if (index_field[i] != field[i]) {
+        flag = false;
+        break;
+      }
+    }
+    if (flag) {
       return &index;
     }
   }
