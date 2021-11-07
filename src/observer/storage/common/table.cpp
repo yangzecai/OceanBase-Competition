@@ -311,23 +311,24 @@ RC Table::insert_record(Trx* trx, int value_num, int tuple_num,
     return RC::INVALID_ARGUMENT;
   }
 
-  std::vector<char*> record_data;
-  RC rc = make_record(value_num, tuple_num, values, record_data);
+  std::vector<char*> records_data;
+  RC rc = make_records(value_num, tuple_num, values, records_data);
   if (rc != RC::SUCCESS) {
     LOG_ERROR("Failed to create a record. rc=%d:%s", rc, strrc(rc));
     return rc;
   }
 
-  for (auto& iter : record_data) {
-    if (rc != RC::SUCCESS) {
-      delete[] iter;
-      continue;
-    }
+  for (size_t i = 0; i < records_data.size(); ++i) {
     Record record;
-    record.data = iter;
-    // record.valid = true;
+    record.data = records_data[i];
     rc = insert_record(trx, &record);
-    delete[] iter;
+    delete[] records_data[i];
+    if (rc != RC::SUCCESS) {
+      for (++i; i < records_data.size(); ++i) {
+        delete[] records_data[i];
+      }
+      return rc;
+    }
   }
   return rc;
 }
@@ -336,21 +337,18 @@ const char* Table::name() const { return table_meta_.name(); }
 
 const TableMeta& Table::table_meta() const { return table_meta_; }
 
-RC Table::make_record(int value_num, int insert_tuple_num, const Value* values,
-                      std::vector<char*>& record_out) {
+RC Table::make_record(int value_num, const Value* values, char*& record_out) {
   // 检查字段类型是否一致
-  int field_num = table_meta_.field_num() - table_meta_.sys_field_num();
-  int cal_tuple_num = value_num / field_num;
-  if (value_num % field_num != 0 || cal_tuple_num != insert_tuple_num) {
+  if (value_num + table_meta_.sys_field_num() != table_meta_.field_num()) {
     return RC::SCHEMA_FIELD_MISSING;
   }
 
   const int normal_field_start_index = table_meta_.sys_field_num();
-  for (int i = 0; i < cal_tuple_num; i++) {
-    for (int j = 0; j < field_num; j++) {
-      const FieldMeta* field = table_meta_.field(j + normal_field_start_index);
-      const Value& value = values[i * field_num + j];
-      if (field->type() != value.type) {
+  for (int i = 0; i < value_num; i++) {
+    const FieldMeta* field = table_meta_.field(i + normal_field_start_index);
+    const Value& value = values[i];
+    if (field->type() != value.type) {
+      if (!(value.type == NULLS && field->nullable())) {
         LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
                   field->name(), field->type(), value.type);
         return RC::SCHEMA_FIELD_TYPE_MISMATCH;
@@ -359,19 +357,47 @@ RC Table::make_record(int value_num, int insert_tuple_num, const Value* values,
   }
 
   // 复制所有字段的值
-  for (int i = 0; i < cal_tuple_num; i++) {
-    int record_size = table_meta_.record_size();
-    char* record = new char[record_size];
+  int record_size = table_meta_.record_size();
+  char* record = new char[record_size];
 
-    for (int j = 0; j < field_num; j++) {
-      const FieldMeta* field = table_meta_.field(j + normal_field_start_index);
-      const Value& value = values[i * field_num + j];
-      memcpy(record + field->offset(), value.data, field->len());
+  for (int i = 0; i < value_num; i++) {
+    const FieldMeta* field = table_meta_.field(i + normal_field_start_index);
+    const Value& value = values[i];
+    memcpy(record + field->offset(), value.data, field->len());
+    if (field->nullable()) {
+      if (value.type == NULLS) {
+        memset(record + field->offset() + field->len(), 1, 1);
+      } else {
+        memset(record + field->offset() + field->len(), 0, 1);
+      }
     }
-
-    record_out.push_back(record);
   }
 
+  record_out = record;
+  return RC::SUCCESS;
+}
+
+RC Table::make_records(int value_num, int insert_tuple_num, const Value* values,
+                       std::vector<char*>& record_out) {
+  int field_num = table_meta_.field_num() - table_meta_.sys_field_num();
+  if (value_num % field_num != 0 ||
+      (value_num / field_num) != insert_tuple_num) {
+    return RC::SCHEMA_FIELD_MISSING;
+  }
+
+  std::vector<char*> records;
+  for (int i = 0; i < insert_tuple_num; ++i) {
+    char* record = nullptr;
+    RC rc = make_record(field_num, values + field_num * i, record);
+    if (rc != SUCCESS) {
+      for (char* record : records) {
+        delete[] record;
+      }
+      return rc;
+    }
+    records.push_back(record);
+  }
+  record_out = std::move(records);
   return RC::SUCCESS;
 }
 
@@ -686,9 +712,13 @@ RC Table::check_attribute_value_valid(const char* attribute_name,
 
   for (int i = table_meta_.sys_field_num(); i < table_meta_.field_num(); ++i) {
     const FieldMeta* field = table_meta_.field(i);
-    if (strcmp(field->name(), attribute_name) == 0 &&
-        value->type == field->type()) {
-      return RC::SUCCESS;
+    if (strcmp(field->name(), attribute_name) == 0) {
+      if (value->type == field->type() ||
+          (value->type == NULLS && field->nullable())) {
+        return RC::SUCCESS;
+      } else {
+        break;
+      }
     }
   }
   return RC::SCHEMA_FIELD_MISSING;
@@ -698,12 +728,11 @@ class RecordUpdater {
  public:
   RecordUpdater(Table& table, Trx* trx, const char* attribute_name,
                 const Value* value)
-      : table_(table), trx_(trx), offset_(0), len_(0), data_(value->data) {
+      : table_(table), trx_(trx), field_meta_(nullptr), value_(value) {
     for (int i = table.table_meta_.sys_field_num();
          i < table.table_meta_.field_num(); ++i) {
       if (strcmp(table.table_meta_.field(i)->name(), attribute_name) == 0) {
-        offset_ = table.table_meta_.field(i)->offset();
-        len_ = table.table_meta_.field(i)->len();
+        field_meta_ = table.table_meta_.field(i);
         break;
       }
     }
@@ -711,7 +740,15 @@ class RecordUpdater {
 
   RC update_record(Record* record) {
     RC rc = RC::SUCCESS;
-    memcpy(record->data + offset_, data_, len_);
+    if (value_->type == NULLS) {
+      memset(record->data + field_meta_->offset() + field_meta_->len(), 1, 1);
+    } else {
+      memcpy(record->data + field_meta_->offset(), value_->data,
+             field_meta_->len());
+      if (field_meta_->nullable()) {
+        memset(record->data + field_meta_->offset() + field_meta_->len(), 0, 1);
+      }
+    }
     rc = table_.update_record(trx_, record);
     if (rc == RC::SUCCESS) {
       updated_count_++;
@@ -725,9 +762,8 @@ class RecordUpdater {
   Table& table_;
   Trx* trx_;
   int updated_count_ = 0;
-  int offset_;
-  int len_;
-  void* data_;
+  const FieldMeta* field_meta_;
+  const Value* value_;
 };
 
 static RC record_reader_update_adapter(Record* record, void* context) {
@@ -754,8 +790,7 @@ RC Table::update_record(Trx* trx, const char* attribute_name,
 RC Table::update_record(Trx* trx, Record* record) {
   RC rc = RC::SUCCESS;
   if (trx != nullptr) {
-    // rc = trx->delete_record(this, record);
-    // FIXME: 事务
+    rc = trx->update_record(this, record);
   } else {
     rc = update_entry_of_indexes(record->data, record->rid);
     if (rc != RC::SUCCESS) {
@@ -766,6 +801,31 @@ RC Table::update_record(Trx* trx, Record* record) {
     }
   }
   return rc;
+}
+
+RC Table::commit_update(Trx* trx, const RID& rid) {
+  RC rc = RC::SUCCESS;
+  Record record;
+  rc = record_handler_->get_record(&rid, &record);
+  if (rc != RC::SUCCESS) {
+    return rc;
+  }
+  rc = update_entry_of_indexes(record.data, record.rid);
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to update indexes of record(rid=%d.%d). rc=%d:%s",
+              rid.page_num, rid.slot_num, rc, strrc(rc));  // panic?
+  }
+
+  rc = record_handler_->update_record(&record);
+  if (rc != RC::SUCCESS) {
+    return rc;
+  }
+
+  return rc;
+}
+
+RC Table::rollback_update(Trx* trx, const RID& rid) {
+  return RC::GENERIC_ERROR;
 }
 
 class RecordDeleter {
@@ -952,7 +1012,8 @@ IndexScanner* Table::find_index_for_scan(const DefaultConditionFilter& filter) {
   }
 
   return index->create_scanner(filter.comp_op(),
-                               (const char*)value_cond_desc->value);
+                               (const char*)value_cond_desc->value,
+                               value_cond_desc->value_is_null);
 }
 
 IndexScanner* Table::find_multi_index_for_scan(

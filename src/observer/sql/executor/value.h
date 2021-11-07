@@ -130,4 +130,15 @@ class DateValue : public TupleValue {
   int value_;
 };
 
+class NullValue : public TupleValue {
+ public:
+  NullValue() {}
+
+  void to_string(std::ostream& os) const override { os << "null"; }
+
+  int compare(const TupleValue& other) const override { return -2; }
+
+  const void* get() const override { return nullptr; }
+};
+
 #endif  //__OBSERVER_SQL_EXECUTOR_VALUE_H_

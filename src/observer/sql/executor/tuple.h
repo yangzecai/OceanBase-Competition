@@ -40,7 +40,8 @@ class Tuple {
   void add(int value);
   void add(float value);
   void add(const char* s, int len);
-  void add(int timestamp, bool date);
+  void add_date(int timestamp);
+  void add_null();
 
   const std::vector<std::shared_ptr<TupleValue>>& values() const {
     return values_;
@@ -118,9 +119,7 @@ class TupleSchema {
   void clear() { fields_.clear(); }
 
   void print(std::ostream& os, bool multi_table) const;
-
-  bool has_attribute() const { return fields_.size() != aggregates_.size(); }
-
+  
  public:
   static void from_table(const Table* table, TupleSchema& schema);
 

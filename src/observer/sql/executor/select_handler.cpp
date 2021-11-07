@@ -181,6 +181,11 @@ RC SelectHandler::init_conditions() {
 
   for (size_t i = 0; i < selects_->condition_num; ++i) {
     const Condition* condition = selects_->conditions + i;
+    if ((condition->comp == IS_NULL || condition->comp == IS_NOT_NULL) &&
+        condition->right_value.type != NULLS) {
+      LOG_WARN("Condition invalid");
+      return RC::INVALID_ARGUMENT;
+    }
     if (is_join_condition(condition)) {
       rc = add_condition_to_join_filter(condition);
       if (rc != RC::SUCCESS) {

@@ -29,11 +29,13 @@ RC BplusTreeIndex::create(const char* file_name, const IndexMeta& index_meta,
 
   std::vector<AttrType> fieled_types;
   std::vector<int> field_lens;
+  std::vector<bool> field_nullables;
   for (const FieldMeta* field : field_metas) {
     fieled_types.emplace_back(field->type());
     field_lens.emplace_back(field->len());
+    field_nullables.emplace_back(field->nullable());
   }
-  rc = index_handler_.create(file_name, fieled_types, field_lens);
+  rc = index_handler_.create(file_name, fieled_types, field_lens,field_nullables);
   if (RC::SUCCESS == rc) {
     inited_ = true;
   }
@@ -101,10 +103,10 @@ RC BplusTreeIndex::get_entry(const char* record, RID* rid) {
   return index_handler_.get_entry(record, offsets, rid);
 }
 
-IndexScanner* BplusTreeIndex::create_scanner(CompOp comp_op,
-                                             const char* value) {
+IndexScanner* BplusTreeIndex::create_scanner(CompOp comp_op, const char* value,
+                                             bool value_is_null) {
   BplusTreeScanner* bplus_tree_scanner = new BplusTreeScanner(index_handler_);
-  RC rc = bplus_tree_scanner->open(comp_op, value);
+  RC rc = bplus_tree_scanner->open(comp_op, value, value_is_null);
   if (rc != RC::SUCCESS) {
     LOG_ERROR("Failed to open index scanner. rc=%d:%s", rc, strrc(rc));
     delete bplus_tree_scanner;

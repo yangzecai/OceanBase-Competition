@@ -151,6 +151,8 @@ class AggregateExeNode : public ExecutionNode {
                              size_t row) const;
   GroupId get_group_id(const Tuple& tuple) const;
 
+  bool is_null(const TupleValue&) const;
+
   Trx* trx_;
   const Selects* selects_;
   ExecutionNode* sub_node_;
