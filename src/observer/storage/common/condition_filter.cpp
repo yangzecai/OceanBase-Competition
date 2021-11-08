@@ -18,6 +18,14 @@ See the Mulan PSL v2 for more details. */
 #include "record_manager.h"
 #include "storage/common/table.h"
 
+int condition_float_compare(float f1, float f2) {
+  float result = f1 - f2;
+  if (result < 1e-6 && result > -1e-6) {
+    return 0;
+  }
+  return result > 0 ? 1 : -1;
+}
+
 using namespace common;
 
 ConditionFilter::~ConditionFilter() {}
@@ -188,12 +196,12 @@ bool DefaultConditionFilter::filter(const Record& rec) const {
       // 对int和float，要考虑字节对齐问题,有些平台下直接转换可能会跪
       int left = *(int*)left_value;
       int right = *(int*)right_value;
-      cmp_result = left - right;
+      cmp_result = (int)(left - right);
     } break;
     case FLOATS: {
       float left = *(float*)left_value;
       float right = *(float*)right_value;
-      cmp_result = (int)(left - right);
+      cmp_result = condition_float_compare(left, right);
     } break;
     case DATES: {
       int left = *(int*)left_value;
