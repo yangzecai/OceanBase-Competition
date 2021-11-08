@@ -58,7 +58,7 @@ class BplusTreeHandler {
    * attrType描述被索引属性的类型，attrLength描述被索引属性的长度
    */
   RC create(const char* file_name, std::vector<AttrType>& attr_type,
-            std::vector<int>& attr_length,std::vector<bool> attr_nullable);
+            std::vector<int>& attr_length,std::vector<bool>& nullables);
 
   /**
    * 删除indexHandle对应的索引文件

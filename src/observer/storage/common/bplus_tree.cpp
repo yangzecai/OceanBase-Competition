@@ -38,7 +38,8 @@ RC BplusTreeHandler::sync() {
 
 RC BplusTreeHandler::create(const char* file_name,
                             std::vector<AttrType>& attr_types,
-                            std::vector<int>& attr_lengths, std::vector<bool> nullable) {
+                            std::vector<int>& attr_lengths,
+                            std::vector<bool>& nullables) {
   BPPageHandle page_handle;
   IndexNode* root;
   char* pdata;
@@ -79,8 +80,8 @@ RC BplusTreeHandler::create(const char* file_name,
   IndexFileHeader* file_header = (IndexFileHeader*)pdata;
   for (size_t i = 0; i < attr_types.size(); i++) {
     file_header->attr_types[i] = attr_types[i];
-    file_header->attr_lengths[i] = attr_lengths[i]  + (nullable[i] ? 1 : 0);
-    file_header->attr_nullable[i] = nullable[i];
+    file_header->attr_lengths[i] = attr_lengths[i] + (nullables[i] ? 1 : 0);
+    file_header->attr_nullable[i] = nullables[i];
     file_header->key_length += attr_lengths[i];
   }
   file_header->key_length += sizeof(RID);
@@ -1678,7 +1679,8 @@ RC BplusTreeHandler::find_first_index_satisfied(CompOp compop, const char* key,
   RID rid;
 
   if (key_is_null) {
-    if ((compop == IS_NULL && file_header_.attr_nullable) ||
+    // FIXME
+    if ((compop == IS_NULL && file_header_.attr_nullable[0]) ||
         compop == IS_NOT_NULL) {
       rc = get_first_leaf_page(page_num);
       if (rc != SUCCESS) {
@@ -1982,62 +1984,36 @@ RC BplusTreeScanner::get_next_idx_in_memory(RID* rid) {
   }
   return RC::RECORD_NO_MORE_IDX_IN_MEM;
 }
-bool BplusTreeScanner::satisfy_condition(const char* pkey) {
+bool verify_condition(const char* pkey, const char* value, AttrType attr_type,
+                      int attr_length, CompOp comp_op) {
   int i1 = 0, i2 = 0;
   float f1 = 0, f2 = 0;
   const char *s1 = nullptr, *s2 = nullptr;
   int d1 = 0, d2 = 0;
 
-  if (comp_op_ == NO_OP) {
-    return true;
-  }
-
-  if (value_is_null_) {
-    if (comp_op_ == IS_NULL) {
-      if (index_handler_.file_header_.attr_nullable &&
-          '\1' == *(pkey + index_handler_.file_header_.attr_length - 1)) {
-        return true;
-      } else {
-        return false;
-      }
-    } else if (comp_op_ == IS_NOT_NULL) {
-      if (!index_handler_.file_header_.attr_nullable ||
-          '\0' == *(pkey + index_handler_.file_header_.attr_length - 1)) {
-        return true;
-      } else {
-        return false;
-      }
-    } else {
-      return false;
-    }
-  }
-
-  AttrType attr_type = index_handler_.file_header_.attr_type;
   switch (attr_type) {
     case INTS:
       i1 = *(int*)pkey;
-      i2 = *(int*)value_;
+      i2 = *(int*)value;
       break;
     case FLOATS:
       f1 = *(float*)pkey;
-      f2 = *(float*)value_;
+      f2 = *(float*)value;
       break;
     case CHARS:
       s1 = pkey;
-      s2 = value_;
+      s2 = value;
       break;
     case DATES:
       d1 = *(int*)pkey;
-      d2 = *(int*)value_;
+      d2 = *(int*)value;
       break;
     default:
       LOG_PANIC("Unknown attr type: %d", attr_type);
   }
 
   bool flag = false;
-
-  int attr_length = index_handler_.file_header_.attr_length;
-  switch (comp_op_) {
+  switch (comp_op) {
     case EQUAL_TO:
       switch (attr_type) {
         case INTS:
@@ -2147,7 +2123,54 @@ bool BplusTreeScanner::satisfy_condition(const char* pkey) {
       }
       break;
     default:
-      LOG_PANIC("Unknown comp op: %d", comp_op_);
+      LOG_PANIC("Unknown comp op: %d", comp_op);
   }
+}
+
+bool BplusTreeScanner::satisfy_condition(const char* pkey) {
+  if (comp_op_ == NO_OP) {
+    return true;
+  }
+
+  if (value_is_null_) {
+    if (comp_op_ == IS_NULL) {
+      if (index_handler_.file_header_.attr_nullable[0] &&
+          '\1' == *(pkey + index_handler_.file_header_.attr_lengths[0] - 1)) {
+        return true;
+      } else {
+        return false;
+      }
+    } else if (comp_op_ == IS_NOT_NULL) {
+      if (!index_handler_.file_header_.attr_nullable[0] ||
+          '\0' == *(pkey + index_handler_.file_header_.attr_lengths[0] - 1)) {
+        return true;
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  }
+
+  int dest = 0;
+  bool flag = false;
+  for (int i = 0; i < index_handler_.file_header_.attr_num; i++) {
+    AttrType attr_type = index_handler_.file_header_.attr_types[i];
+    int attr_length = index_handler_.file_header_.attr_lengths[i];
+
+    char* pd = (char*)malloc(attr_length);
+    char* pk = (char*)malloc(attr_length);
+    memcpy(pk, pkey + dest, attr_length);
+    memcpy(pd, value_ + dest, attr_length);
+    flag = verify_condition(pk, pd, attr_type, attr_length, comp_op_);
+    free(pd);
+    free(pk);
+
+    if (!flag) {
+      return flag;
+    }
+    dest += attr_length;
+  }
+
   return flag;
 }

@@ -189,7 +189,7 @@ RC Table::open(const char* meta_file, const char* base_dir) {
     const IndexMeta* index_meta = table_meta_.index(i);
     std::vector<const FieldMeta*> field_metas;
     std::vector<std::string> field_names = index_meta->field();
-    for (int j = 0; j < field_names.size(); j++) {
+    for (size_t j = 0; j < field_names.size(); j++) {
       const char* field_name = field_names[j].c_str();
       const FieldMeta* field_meta = table_meta_.field(field_name);
       field_metas.emplace_back(field_meta);
@@ -586,7 +586,7 @@ RC Table::create_index(Trx* trx, const char* index_name,
                        const char** attribute_names, const size_t attribute_num,
                        const bool index_is_unique) {
   std::vector<std::string> attr_names_vector;
-  for (int i = 0; i < attribute_num; i++) {
+  for (size_t i = 0; i < attribute_num; i++) {
     attr_names_vector.emplace_back(attribute_names[i]);
   }
   if (table_meta_.index(index_name) != nullptr ||
@@ -595,7 +595,7 @@ RC Table::create_index(Trx* trx, const char* index_name,
   }
 
   std::vector<const FieldMeta*> field_metas;
-  for (int i = 0; i < attribute_num; i++) {
+  for (size_t i = 0; i < attribute_num; i++) {
     if (index_name == nullptr || common::is_blank(index_name) ||
         attribute_names[i] == nullptr || common::is_blank(attribute_names[i])) {
       return RC::INVALID_ARGUMENT;
@@ -1019,7 +1019,7 @@ IndexScanner* Table::find_index_for_scan(const DefaultConditionFilter& filter) {
 IndexScanner* Table::find_multi_index_for_scan(
     std::vector<DefaultConditionFilter>& filters) {
   std::vector<std::string> field_names;
-  for (int i = 0; i < filters.size() - 1; i++) {
+  for (unsigned int i = 0; i < filters.size() - 1; i++) {
     if (filters[i].comp_op() != EQUAL_TO) {
       return nullptr;
     }
@@ -1060,7 +1060,7 @@ IndexScanner* Table::find_multi_index_for_scan(
   }
 
   return index->create_scanner(filters.back().comp_op(),
-                               (const char*)value_cond_desc->value);
+                               (const char*)value_cond_desc->value, false);
 }
 
 IndexScanner* Table::find_index_for_scan(const ConditionFilter* filter) {
