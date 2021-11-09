@@ -1741,7 +1741,20 @@ RC BplusTreeHandler::find_first_index_satisfied(CompOp compop, const char* key,
       tmp = CompareKey(node->keys + i * file_header_.key_length, key,
                        file_header_.attr_types, file_header_.attr_lengths,
                        file_header_.attr_num);
-      if (compop == EQUAL_TO || compop == GREAT_EQUAL) {
+      if (compop == EQUAL_TO) {
+        if (tmp == 0) {
+          rc = disk_buffer_pool_->get_page_num(&page_handle, page_num);
+          if (rc != SUCCESS) {
+            return rc;
+          }
+          *rididx = i;
+          rc = disk_buffer_pool_->unpin_page(&page_handle);
+          if (rc != SUCCESS) {
+            return rc;
+          }
+          return SUCCESS;
+        }
+      } else if (compop == GREAT_EQUAL) {
         if (tmp >= 0) {
           rc = disk_buffer_pool_->get_page_num(&page_handle, page_num);
           if (rc != SUCCESS) {
@@ -1754,8 +1767,7 @@ RC BplusTreeHandler::find_first_index_satisfied(CompOp compop, const char* key,
           }
           return SUCCESS;
         }
-      }
-      if (compop == GREAT_THAN) {
+      } else if (compop == GREAT_THAN) {
         if (tmp > 0) {
           rc = disk_buffer_pool_->get_page_num(&page_handle, page_num);
           if (rc != SUCCESS) {
