@@ -2125,6 +2125,7 @@ bool verify_condition(const char* pkey, const char* value, AttrType attr_type,
     default:
       LOG_PANIC("Unknown comp op: %d", comp_op);
   }
+  return flag;
 }
 
 bool BplusTreeScanner::satisfy_condition(const char* pkey) {
@@ -2154,15 +2155,24 @@ bool BplusTreeScanner::satisfy_condition(const char* pkey) {
 
   int dest = 0;
   bool flag = false;
-  for (int i = 0; i < index_handler_.file_header_.attr_num; i++) {
-    AttrType attr_type = index_handler_.file_header_.attr_types[i];
-    int attr_length = index_handler_.file_header_.attr_lengths[i];
+  AttrType attr_type;
+  int attr_length;
+  int attr_num = index_handler_.file_header_.attr_num;
+  for (int i = 0; i < attr_num; i++) {
+    attr_type = index_handler_.file_header_.attr_types[i];
+    attr_length = index_handler_.file_header_.attr_lengths[i];
 
     char* pd = (char*)malloc(attr_length);
     char* pk = (char*)malloc(attr_length);
     memcpy(pk, pkey + dest, attr_length);
     memcpy(pd, value_ + dest, attr_length);
-    flag = verify_condition(pk, pd, attr_type, attr_length, comp_op_);
+    CompOp comp_op;
+    if (attr_num > 1 && i < attr_num - 1) {
+      comp_op = EQUAL_TO;
+    } else {
+      comp_op = comp_op_;
+    }
+    flag = verify_condition(pk, pd, attr_type, attr_length, comp_op);
     free(pd);
     free(pk);
 

@@ -1027,6 +1027,8 @@ IndexScanner* Table::find_multi_index_for_scan(
 
   const ConDesc* field_cond_desc = nullptr;
   const ConDesc* value_cond_desc = nullptr;
+  char* value = (char*)malloc(filters.size() * 4);
+  int dest = 0;
   for (auto& filter : filters) {
     if (filter.left().is_attr && !filter.right().is_attr) {
       field_cond_desc = &filter.left();
@@ -1046,21 +1048,29 @@ IndexScanner* Table::find_multi_index_for_scan(
                 field_cond_desc->attr_offset, name());
       return nullptr;
     }
-
+    memcpy(value + dest, value_cond_desc->value, 4);
+    dest += 4;
     field_names.emplace_back(field_meta->name());
   }
   const IndexMeta* index_meta = table_meta_.find_index_by_field(field_names);
   if (nullptr == index_meta) {
+    free(value);
+    value = nullptr;
     return nullptr;
   }
 
   Index* index = find_index(index_meta->name());
   if (nullptr == index) {
+    free(value);
+    value = nullptr;
     return nullptr;
   }
 
-  return index->create_scanner(filters.back().comp_op(),
-                               (const char*)value_cond_desc->value, false);
+  IndexScanner* scanner =
+      index->create_scanner(filters.back().comp_op(), value, false);
+  free(value);
+  value = nullptr;
+  return scanner;
 }
 
 IndexScanner* Table::find_index_for_scan(const ConditionFilter* filter) {
@@ -1081,6 +1091,7 @@ IndexScanner* Table::find_index_for_scan(const ConditionFilter* filter) {
     int filter_num = composite_condition_filter->filter_num();
 
     //多列索引匹配
+    // FIXME:如果创建了多个多列索引，只会扫描一遍，fail了之后不会再找下一个
     if (filter_num > 1) {
       std::vector<DefaultConditionFilter> multix_filters;
       for (int i = 0; i < filter_num; i++) {
@@ -1091,7 +1102,7 @@ IndexScanner* Table::find_index_for_scan(const ConditionFilter* filter) {
       }
       IndexScanner* scanner = find_multi_index_for_scan(multix_filters);
       if (scanner != nullptr) {
-        return scanner;  // 可以找到一个最优的，比如比较符号是=
+        return scanner;
       }
     }
 
