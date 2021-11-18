@@ -238,7 +238,7 @@ create_index:		/*create index 语句的语法解析树*/
 		{
             CONTEXT->id_list[0] = $8;
             CONTEXT->id_list_length++;
-			create_index_init(&CONTEXT->ssql->sstr.create_index, $4, $6, CONTEXT->id_list, CONTEXT->id_list_length);
+			create_index_init(&CONTEXT->ssql->sstr.create_index, $4, $6, (const char**)CONTEXT->id_list, CONTEXT->id_list_length);
 			CONTEXT->id_list_length = 0;
 		}
     ;

@@ -35,7 +35,8 @@ RC BplusTreeIndex::create(const char* file_name, const IndexMeta& index_meta,
     field_lens.emplace_back(field->len());
     field_nullables.emplace_back(field->nullable());
   }
-  rc = index_handler_.create(file_name, fieled_types, field_lens,field_nullables);
+  rc = index_handler_.create(file_name, fieled_types, field_lens,
+                             field_nullables);
   if (RC::SUCCESS == rc) {
     inited_ = true;
   }
@@ -81,7 +82,7 @@ RC BplusTreeIndex::close() {
 
 RC BplusTreeIndex::insert_entry(const char* record, const RID* rid) {
   std::vector<int> offsets;
-  for (int i = 0; i < field_meta_.size(); i++) {
+  for (size_t i = 0; i < field_meta_.size(); i++) {
     offsets.emplace_back(field_meta_[i].offset());
   }
   return index_handler_.insert_entry(record, offsets, rid);
@@ -89,7 +90,7 @@ RC BplusTreeIndex::insert_entry(const char* record, const RID* rid) {
 
 RC BplusTreeIndex::delete_entry(const char* record, const RID* rid) {
   std::vector<int> offsets;
-  for (int i = 0; i < field_meta_.size(); i++) {
+  for (size_t i = 0; i < field_meta_.size(); i++) {
     offsets.emplace_back(field_meta_[i].offset());
   }
   return index_handler_.delete_entry(record, offsets, rid);
@@ -97,7 +98,7 @@ RC BplusTreeIndex::delete_entry(const char* record, const RID* rid) {
 
 RC BplusTreeIndex::get_entry(const char* record, RID* rid) {
   std::vector<int> offsets;
-  for (int i = 0; i < field_meta_.size(); i++) {
+  for (size_t i = 0; i < field_meta_.size(); i++) {
     offsets.emplace_back(field_meta_[i].offset());
   }
   return index_handler_.get_entry(record, offsets, rid);

@@ -1480,7 +1480,7 @@ yyreduce:
                 {
             CONTEXT->id_list[0] = (yyvsp[-3].string);
             CONTEXT->id_list_length++;
-			create_index_init(&CONTEXT->ssql->sstr.create_index, (yyvsp[-7].string), (yyvsp[-5].string), CONTEXT->id_list, CONTEXT->id_list_length);
+			create_index_init(&CONTEXT->ssql->sstr.create_index, (yyvsp[-7].string), (yyvsp[-5].string), (const char**)CONTEXT->id_list, CONTEXT->id_list_length);
 			CONTEXT->id_list_length = 0;
 		}
 #line 1487 "yacc_sql.tab.c"

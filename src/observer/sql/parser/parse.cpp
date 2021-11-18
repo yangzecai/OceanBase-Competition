@@ -402,7 +402,7 @@ void create_index_init(CreateIndex* create_index, const char* index_name,
                        size_t attr_num) {
   create_index->index_name = strdup(index_name);
   create_index->relation_name = strdup(relation_name);
-  for (int i = 0; i < attr_num; i++) {
+  for (size_t i = 0; i < attr_num; i++) {
     create_index->attribute_name[i] = strdup(attr_names[i]);
   }
   create_index->attribute_num = attr_num;
@@ -410,13 +410,13 @@ void create_index_init(CreateIndex* create_index, const char* index_name,
 void create_index_destroy(CreateIndex* create_index) {
   free(create_index->index_name);
   free(create_index->relation_name);
-  for (int i = 0; i < create_index->attribute_num; i++) {
+  for (size_t i = 0; i < create_index->attribute_num; i++) {
     free(create_index->attribute_name[i]);
   }
 
   create_index->index_name = nullptr;
   create_index->relation_name = nullptr;
-  for (int i = 0; i < create_index->attribute_num; i++) {
+  for (size_t i = 0; i < create_index->attribute_num; i++) {
     create_index->attribute_name[i] = nullptr;
   }
 }

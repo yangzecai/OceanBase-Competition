@@ -155,7 +155,7 @@ const IndexMeta* TableMeta::find_index_by_field(
       continue;
     }
     bool flag = true;
-    for (int i = 0; i < field.size(); i++) {
+    for (size_t i = 0; i < field.size(); i++) {
       if (index_field[i] != field[i]) {
         flag = false;
         break;
