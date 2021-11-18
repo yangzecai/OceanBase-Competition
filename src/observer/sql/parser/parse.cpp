@@ -130,6 +130,12 @@ void value_init_text(Value* value, const char* v, size_t string_length) {
       value_init_date(value, v);
     } else {
       value->type = TEXTS;
+      if (string_length > 4096) {
+        char sub_str[4096];
+        strncpy(sub_str, v, 4096);
+        value->data = strdup(sub_str);
+        return;
+      }
       value->data = strdup(v);
     }
   } else {
