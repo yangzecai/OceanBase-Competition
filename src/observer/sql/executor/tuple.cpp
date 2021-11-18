@@ -15,6 +15,7 @@ See the Mulan PSL v2 for more details. */
 
 #include "common/log/log.h"
 #include "sql/executor/tuple.h"
+#include "storage/common/meta_util.h"
 #include "storage/common/table.h"
 
 Tuple::Tuple(const Tuple& other) {
@@ -50,6 +51,8 @@ void Tuple::add(const char* s, int len) { add(new StringValue(s, len)); }
 void Tuple::add_date(int timestamp) { add(new DateValue(timestamp)); }
 
 void Tuple::add_null() { add(new NullValue()); }
+
+void Tuple::add_text(std::string text_data) { add(new TextValue(text_data)); }
 ////////////////////////////////////////////////////////////////////////////////
 
 std::string TupleField::to_string() const {
@@ -298,6 +301,19 @@ void TupleRecordConverter::add_record(const char* record) {
       case DATES: {
         int value = *(int*)(record + field_meta->offset());
         tuple.add_date(value);
+      } break;
+      case TEXTS: {
+        std::string text_file_name = std::string("./miniob/db/sys") + "/" +
+                                     table_meta.name() + "_" +
+                                     field_meta->name() + TABLE_TEXT_SUFFIX;
+        int offset = *(int*)(record + field_meta->offset());
+        std::ifstream read_text;
+        read_text.open(text_file_name);
+        read_text.seekg(offset, std::ios::beg);
+        char text_data[4096];
+        read_text.read(text_data, 4096);
+        tuple.add_text(std::string(text_data));
+        read_text.close();
       } break;
       default: {
         LOG_PANIC("Unsupported field type. type=%d", field_meta->type());

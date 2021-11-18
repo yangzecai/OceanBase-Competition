@@ -23,10 +23,10 @@ const static Json::StaticString FIELD_NULLABLE("nullable");
 const static Json::StaticString FIELD_VISIBLE("visible");
 
 const char* ATTR_TYPE_NAME[] = {"undefined", "chars", "ints", "floats",
-                                "dates"};
+                                "dates", "texts"};
 
 const char* attr_type_to_string(AttrType type) {
-  if (type >= UNDEFINED && type <= DATES) {
+  if (type >= UNDEFINED && type <= TEXTS) {
     return ATTR_TYPE_NAME[type];
   }
   return "unknown";

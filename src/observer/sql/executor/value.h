@@ -141,4 +141,18 @@ class NullValue : public TupleValue {
   const void* get() const override { return nullptr; }
 };
 
+class TextValue : public TupleValue {
+ public:
+  explicit TextValue(std::string text_data) :value_(text_data){}
+
+  void to_string(std::ostream& os) const override { os << value_; }
+
+  int compare(const TupleValue& other) const override { return -2; }
+
+  const void* get() const override { return nullptr; }
+
+ private:
+  std::string value_;
+};
+
 #endif  //__OBSERVER_SQL_EXECUTOR_VALUE_H_

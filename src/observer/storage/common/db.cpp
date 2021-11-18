@@ -66,6 +66,29 @@ RC Db::create_table(const char* table_name, int attribute_count,
     return rc;
   }
 
+  for (int i = 0; i < attribute_count; i++) {
+    if (attributes[i].type == TEXTS) {
+      std::string text_file_name = path_ + "/" + table_name + "_" +
+                                   attributes[i].name + TABLE_TEXT_SUFFIX;
+      int fd = ::open(text_file_name.c_str(),
+                      O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0600);
+      if (-1 == fd) {
+        if (EEXIST == errno) {
+          LOG_ERROR(
+              "Failed to create text storage file, it has been created. %s, "
+              "EEXIST, "
+              "%s",
+              text_file_name.c_str(), strerror(errno));
+          return RC::SCHEMA_TABLE_EXIST;
+        }
+        LOG_ERROR("Create table file failed. filename=%s, errmsg=%d:%s",
+                  text_file_name.c_str(), errno, strerror(errno));
+        return RC::IOERR;
+      }
+      close(fd);
+    }
+  }
+
   opened_tables_[table_name] = table;
   LOG_INFO("Create table success. table name=%s", table_name);
   return RC::SUCCESS;

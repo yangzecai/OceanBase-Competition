@@ -18,6 +18,7 @@ typedef struct ParserContext {
   size_t value_length;
   size_t id_list_length;
   size_t tuple_num;
+  size_t string_length;
   Value values[MAX_NUM];
   Condition conditions[MAX_NUM];
   CompOp comp;
@@ -49,6 +50,7 @@ void yyerror(yyscan_t scanner, const char *str)
   context->value_length = 0;
   context->id_list_length = 0;
   context->tuple_num = 0;
+  context->string_length = 0;
   context->ssql->sstr.insertion.value_num = 0;
   printf("parse sql failed. error=%s", str);
 }
@@ -90,6 +92,7 @@ ParserContext *get_context(yyscan_t scanner)
         STRING_T
         FLOAT_T
         DATE_T
+        TEXT_T
         HELP
         EXIT
         DOT //QUOTE
@@ -304,6 +307,7 @@ type:
     | STRING_T { $$=CHARS; }
     | FLOAT_T { $$=FLOATS; }
     | DATE_T { $$=DATES; }
+    | TEXT_T { $$=TEXTS; }
     ;
 ID_get:
     ID
@@ -357,15 +361,16 @@ value:
 		}
     | SSS {
 			$1 = substr($1,1,strlen($1)-2);
-  		value_init_string(&CONTEXT->values[CONTEXT->value_length++], $1);
+			CONTEXT->string_length = strlen($1);
+		value_init_text(&CONTEXT->values[CONTEXT->value_length++], $1, CONTEXT->string_length);
 		}
     | NULL_T {
       value_init_null(&CONTEXT->values[CONTEXT->value_length++]);
     }
     ;
-    
+
 delete:		/*  delete 语句的语法解析树*/
-    DELETE FROM ID where SEMICOLON 
+    DELETE FROM ID where SEMICOLON
 		{
 			CONTEXT->ssql->flag = SCF_DELETE;//"delete";
 			deletes_init_relation(&CONTEXT->ssql->sstr.deletion, $3);

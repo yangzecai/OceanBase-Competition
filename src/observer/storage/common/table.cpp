@@ -363,6 +363,24 @@ RC Table::make_record(int value_num, const Value* values, char*& record_out) {
   for (int i = 0; i < value_num; i++) {
     const FieldMeta* field = table_meta_.field(i + normal_field_start_index);
     const Value& value = values[i];
+    if (field->type() == TEXTS) {
+      std::string text_file = std::string(base_dir_) + "/" + name() + "_" +
+                              field->name() + TABLE_TEXT_SUFFIX;
+      struct stat statbuf;
+      stat(text_file.c_str(), &statbuf);
+      int offset = statbuf.st_size;
+      memcpy(record + field->offset(), &offset, field->len());
+
+      std::ofstream ofs;
+      ofs.open(text_file, std::ios::app);
+      char write_data[4096];
+      strncpy(write_data, (char*)value.data, 4096);
+      for (int j = 0; j < 4096; j++) {
+        ofs << write_data[j];
+      }
+      ofs.close();
+      continue;
+    }
     memcpy(record + field->offset(), value.data, field->len());
     if (field->nullable()) {
       if (value.type == NULLS) {

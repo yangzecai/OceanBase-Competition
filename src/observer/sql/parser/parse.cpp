@@ -121,11 +121,19 @@ bool is_date(const char* v) {
   return true;
 }
 void value_init_string(Value* value, const char* v) {
-  if (is_date(v)) {
-    value_init_date(value, v);
+  value->type = CHARS;
+  value->data = strdup(v);
+}
+void value_init_text(Value* value, const char* v, size_t string_length) {
+  if (string_length > 4) {
+    if (is_date(v)) {
+      value_init_date(value, v);
+    } else {
+      value->type = TEXTS;
+      value->data = strdup(v);
+    }
   } else {
-    value->type = CHARS;
-    value->data = strdup(v);
+    value_init_string(value, v);
   }
 }
 void value_init_date(Value* value, const char* v) {
@@ -219,9 +227,7 @@ void order_init(Order* order, OrderType type, RelAttr* attr) {
   order->type = type;
   order->attr = *attr;
 }
-void order_destory(Order* order) {
-  relation_attr_destroy(&order->attr);
-}
+void order_destory(Order* order) { relation_attr_destroy(&order->attr); }
 
 void selects_init(Selects* selects, ...);
 void selects_append_attribute(Selects* selects, RelAttr* rel_attr) {
@@ -386,10 +392,11 @@ void drop_table_destroy(DropTable* drop_table) {
 }
 
 void create_index_init(CreateIndex* create_index, const char* index_name,
-                       const char* relation_name, const char** attr_names, size_t attr_num) {
+                       const char* relation_name, const char** attr_names,
+                       size_t attr_num) {
   create_index->index_name = strdup(index_name);
   create_index->relation_name = strdup(relation_name);
-  for(int i = 0; i < attr_num; i++) {
+  for (int i = 0; i < attr_num; i++) {
     create_index->attribute_name[i] = strdup(attr_names[i]);
   }
   create_index->attribute_num = attr_num;
@@ -397,13 +404,13 @@ void create_index_init(CreateIndex* create_index, const char* index_name,
 void create_index_destroy(CreateIndex* create_index) {
   free(create_index->index_name);
   free(create_index->relation_name);
-  for(int i = 0; i < create_index->attribute_num; i++) {
+  for (int i = 0; i < create_index->attribute_num; i++) {
     free(create_index->attribute_name[i]);
   }
 
   create_index->index_name = nullptr;
   create_index->relation_name = nullptr;
-  for(int i = 0; i < create_index->attribute_num; i++) {
+  for (int i = 0; i < create_index->attribute_num; i++) {
     create_index->attribute_name[i] = nullptr;
   }
 }
