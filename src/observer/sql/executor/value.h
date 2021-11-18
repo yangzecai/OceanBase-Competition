@@ -143,7 +143,12 @@ class NullValue : public TupleValue {
 
 class TextValue : public TupleValue {
  public:
-  explicit TextValue(std::string text_data) :value_(text_data){}
+  explicit TextValue(std::string text_data) {
+    if (text_data.size() > 4096) {
+      text_data.resize(4096);
+    }
+    value_ = text_data;
+  }
 
   void to_string(std::ostream& os) const override { os << value_; }
 
