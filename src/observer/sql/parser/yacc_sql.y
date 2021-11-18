@@ -24,7 +24,8 @@ typedef struct ParserContext {
   CompOp comp;
   char id[MAX_NUM];
   char *id_list[MAX_NUM];
-  AggregateType aggregate_type;
+  SelectFrame select_frame[QUERY_NUM];
+  int select_frame_index;
 } ParserContext;
 
 //获取子串
@@ -392,29 +393,39 @@ update:			/*  update 语句的语法解析树*/
 		}
     ;
 select:				/*  select 语句的语法解析树*/
-    SELECT select_attr FROM ID rel_list inner_join_list where order group SEMICOLON
+    select_prepare select_attr FROM ID rel_list inner_join_list where order group SEMICOLON
 		{
-			// CONTEXT->ssql->sstr.selection.relations[CONTEXT->from_length++]=$4;
-			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4);
+			// (CONTEXT->ssql + CONTEXT->select_frame_index)->sstr.selection.relations[CONTEXT->from_length++]=$4;
+			selects_append_relation(&(CONTEXT->ssql + CONTEXT->select_frame_index)->sstr.selection, $4);
 
-      selects_append_conditions(&CONTEXT->ssql->sstr.selection, CONTEXT->conditions, CONTEXT->condition_length);
+      Condition* this_frame_conditions = CONTEXT->conditions + CONTEXT->select_frame[CONTEXT->select_frame_index].last_condition_length;
+      selects_append_conditions(&(CONTEXT->ssql + CONTEXT->select_frame_index)->sstr.selection, this_frame_conditions, CONTEXT->condition_length);
 
-			CONTEXT->ssql->flag=SCF_SELECT;//"select";
-			// CONTEXT->ssql->sstr.selection.attr_num = CONTEXT->select_length;
+			(CONTEXT->ssql + CONTEXT->select_frame_index)->flag=SCF_SELECT;//"select";
+			// (CONTEXT->ssql + CONTEXT->select_frame_index)->sstr.selection.attr_num = CONTEXT->select_length;
 
 			//临时变量清零
-			CONTEXT->condition_length=0;
 			CONTEXT->from_length=0;
 			CONTEXT->select_length=0;
-			CONTEXT->value_length = 0;
+
+      CONTEXT->condition_length = CONTEXT->select_frame[CONTEXT->select_frame_index].last_condition_length;
+      CONTEXT->value_length = CONTEXT->select_frame[CONTEXT->select_frame_index].last_value_length;
+      CONTEXT->select_frame_index--;
     }
     ;
+
+select_prepare:
+    SELECT {
+      CONTEXT->select_frame_index++;
+      CONTEXT->select_frame[CONTEXT->select_frame_index].last_condition_length = CONTEXT->condition_length;
+      CONTEXT->select_frame[CONTEXT->select_frame_index].last_value_length = CONTEXT->value_length;
+    }
 
 select_attr:
     STAR {  
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, "*");
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+			selects_append_attribute(&(CONTEXT->ssql + CONTEXT->select_frame_index)->sstr.selection, &attr);
 		}
     | attribute attr_list {
 
@@ -427,17 +438,17 @@ attribute:
     ID {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, $1);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+			selects_append_attribute(&(CONTEXT->ssql + CONTEXT->select_frame_index)->sstr.selection, &attr);
 		}
   	| ID DOT ID {
 			RelAttr attr;
 			relation_attr_init(&attr, $1, $3);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+			selects_append_attribute(&(CONTEXT->ssql + CONTEXT->select_frame_index)->sstr.selection, &attr);
 		}
     | ID DOT STAR {
       RelAttr attr;
       relation_attr_init(&attr, $1, "*");
-      selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+      selects_append_attribute(&(CONTEXT->ssql + CONTEXT->select_frame_index)->sstr.selection, &attr);
     }
     ;
 aggregate:
@@ -446,27 +457,27 @@ aggregate:
 			relation_attr_init(&attr, NULL, $3);
       Aggregate aggregate;
       aggregate_init(&aggregate, $1, 1, &attr, NULL);
-			selects_append_aggregate(&CONTEXT->ssql->sstr.selection, &aggregate);
+			selects_append_aggregate(&(CONTEXT->ssql + CONTEXT->select_frame_index)->sstr.selection, &aggregate);
     }
     | agg_type LBRACE ID DOT ID RBRACE {
       RelAttr attr;
 			relation_attr_init(&attr, $3, $5);
       Aggregate aggregate;
       aggregate_init(&aggregate, $1, 1, &attr, NULL);
-			selects_append_aggregate(&CONTEXT->ssql->sstr.selection, &aggregate);
+			selects_append_aggregate(&(CONTEXT->ssql + CONTEXT->select_frame_index)->sstr.selection, &aggregate);
     }
     | agg_type LBRACE value RBRACE {
       Value* value = &CONTEXT->values[CONTEXT->value_length - 1];
       Aggregate aggregate;
       aggregate_init(&aggregate, $1, 0, NULL, value);
-			selects_append_aggregate(&CONTEXT->ssql->sstr.selection, &aggregate);
+			selects_append_aggregate(&(CONTEXT->ssql + CONTEXT->select_frame_index)->sstr.selection, &aggregate);
     }
     | agg_type LBRACE STAR RBRACE {
       value_init_string(&CONTEXT->values[CONTEXT->value_length++], "*");
       Value* value = &CONTEXT->values[CONTEXT->value_length - 1];
       Aggregate aggregate;
       aggregate_init(&aggregate, $1, 0, NULL, value);
-			selects_append_aggregate(&CONTEXT->ssql->sstr.selection, &aggregate);
+			selects_append_aggregate(&(CONTEXT->ssql + CONTEXT->select_frame_index)->sstr.selection, &aggregate);
     }
     ;
 attr_list:
@@ -487,13 +498,13 @@ agg_type:
 rel_list:
     /* empty */
     | COMMA ID rel_list {	
-				selects_append_relation(&CONTEXT->ssql->sstr.selection, $2);
+				selects_append_relation(&(CONTEXT->ssql + CONTEXT->select_frame_index)->sstr.selection, $2);
 		}
     ;
 inner_join_list:
     /* empty */
     | INNER JOIN ID ON condition condition_list inner_join_list{
-      selects_append_relation(&CONTEXT->ssql->sstr.selection, $3);
+      selects_append_relation(&(CONTEXT->ssql + CONTEXT->select_frame_index)->sstr.selection, $3);
     }
     ;
 where:
@@ -676,42 +687,42 @@ order_attribute:
 			relation_attr_init(&attr, NULL, $1);
       Order order;
       order_init(&order, ORDER_ASC, &attr);
-			selects_append_order(&CONTEXT->ssql->sstr.selection, &order);
+			selects_append_order(&(CONTEXT->ssql + CONTEXT->select_frame_index)->sstr.selection, &order);
     }
     | ID DOT ID {
       RelAttr attr;
 			relation_attr_init(&attr, $1, $3);
       Order order;
       order_init(&order, ORDER_ASC, &attr);
-			selects_append_order(&CONTEXT->ssql->sstr.selection, &order);
+			selects_append_order(&(CONTEXT->ssql + CONTEXT->select_frame_index)->sstr.selection, &order);
     }
     | ID ASC {
       RelAttr attr;
 			relation_attr_init(&attr, NULL, $1);
       Order order;
       order_init(&order, ORDER_ASC, &attr);
-			selects_append_order(&CONTEXT->ssql->sstr.selection, &order);
+			selects_append_order(&(CONTEXT->ssql + CONTEXT->select_frame_index)->sstr.selection, &order);
     }
     | ID DOT ID ASC {
       RelAttr attr;
 			relation_attr_init(&attr, $1, $3);
       Order order;
       order_init(&order, ORDER_ASC, &attr);
-			selects_append_order(&CONTEXT->ssql->sstr.selection, &order);
+			selects_append_order(&(CONTEXT->ssql + CONTEXT->select_frame_index)->sstr.selection, &order);
     }
     | ID DESC {
       RelAttr attr;
 			relation_attr_init(&attr, NULL, $1);
       Order order;
       order_init(&order, ORDER_DESC, &attr);
-			selects_append_order(&CONTEXT->ssql->sstr.selection, &order);
+			selects_append_order(&(CONTEXT->ssql + CONTEXT->select_frame_index)->sstr.selection, &order);
     }
     | ID DOT ID DESC {
       RelAttr attr;
 			relation_attr_init(&attr, $1, $3);
       Order order;
       order_init(&order, ORDER_DESC, &attr);
-			selects_append_order(&CONTEXT->ssql->sstr.selection, &order);
+			selects_append_order(&(CONTEXT->ssql + CONTEXT->select_frame_index)->sstr.selection, &order);
     }
     ;
 order_list:
@@ -728,12 +739,12 @@ group_attribute:
     ID {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, $1);
-			selects_append_group(&CONTEXT->ssql->sstr.selection, &attr);
+			selects_append_group(&(CONTEXT->ssql + CONTEXT->select_frame_index)->sstr.selection, &attr);
 		}
   	| ID DOT ID {
 			RelAttr attr;
 			relation_attr_init(&attr, $1, $3);
-			selects_append_group(&CONTEXT->ssql->sstr.selection, &attr);
+			selects_append_group(&(CONTEXT->ssql + CONTEXT->select_frame_index)->sstr.selection, &attr);
 		}
     ;
 group_list:
@@ -755,6 +766,7 @@ extern void scan_string(const char *str, yyscan_t scanner);
 int sql_parse(const char *s, Query *sqls){
 	ParserContext context;
 	memset(&context, 0, sizeof(context));
+  context.select_frame_index = -1;
 
 	yyscan_t scanner;
 	yylex_init_extra(&context, &scanner);

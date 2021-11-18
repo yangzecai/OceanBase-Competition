@@ -22,6 +22,7 @@ See the Mulan PSL v2 for more details. */
 #define MAX_ATTR_NAME 20
 #define MAX_ERROR_MESSAGE 20
 #define MAX_DATA 50
+#define QUERY_NUM 10
 
 //属性结构体
 typedef struct {
@@ -94,6 +95,11 @@ typedef struct {
   size_t group_num;
   RelAttr groups[MAX_NUM];
 } Selects;
+
+typedef struct {
+  size_t last_condition_length;
+  size_t last_value_length;
+} SelectFrame;
 
 // struct of insert
 typedef struct {

@@ -461,12 +461,14 @@ void load_data_destroy(LoadData* load_data) {
 }
 
 void query_init(Query* query) {
-  query->flag = SCF_ERROR;
-  memset(&query->sstr, 0, sizeof(query->sstr));
+  for (size_t i = 0; i < QUERY_NUM; ++i) {
+    (query + i)->flag = SCF_ERROR;
+    memset(&(query + i)->sstr, 0, sizeof(query->sstr));
+  }
 }
 
 Query* query_create() {
-  Query* query = (Query*)malloc(sizeof(Query));
+  Query* query = (Query*)malloc(QUERY_NUM * sizeof(Query));
   if (nullptr == query) {
     LOG_ERROR("Failed to alloc memroy for query. size=%ld", sizeof(Query));
     return nullptr;
@@ -477,53 +479,55 @@ Query* query_create() {
 }
 
 void query_reset(Query* query) {
-  switch (query->flag) {
-    case SCF_SELECT: {
-      selects_destroy(&query->sstr.selection);
-    } break;
-    case SCF_INSERT: {
-      inserts_destroy(&query->sstr.insertion);
-    } break;
-    case SCF_DELETE: {
-      deletes_destroy(&query->sstr.deletion);
-    } break;
-    case SCF_UPDATE: {
-      updates_destroy(&query->sstr.update);
-    } break;
-    case SCF_CREATE_TABLE: {
-      create_table_destroy(&query->sstr.create_table);
-    } break;
-    case SCF_DROP_TABLE: {
-      drop_table_destroy(&query->sstr.drop_table);
-    } break;
-    case SCF_CREATE_INDEX: {
-      create_index_destroy(&query->sstr.create_index);
-    } break;
-    case SCF_CREATE_UNIQUE_INDEX: {
-      create_index_destroy(&query->sstr.create_index);
-    } break;
-    case SCF_DROP_INDEX: {
-      drop_index_destroy(&query->sstr.drop_index);
-    } break;
-    case SCF_SYNC: {
-    } break;
-    case SCF_SHOW_TABLES:
-      break;
+  for (size_t i = 0; i < QUERY_NUM; ++i) {
+  switch ((query + i)->flag) {
+      case SCF_SELECT: {
+        selects_destroy(&(query + i)->sstr.selection);
+      } break;
+      case SCF_INSERT: {
+        inserts_destroy(&(query + i)->sstr.insertion);
+      } break;
+      case SCF_DELETE: {
+        deletes_destroy(&(query + i)->sstr.deletion);
+      } break;
+      case SCF_UPDATE: {
+        updates_destroy(&(query + i)->sstr.update);
+      } break;
+      case SCF_CREATE_TABLE: {
+        create_table_destroy(&(query + i)->sstr.create_table);
+      } break;
+      case SCF_DROP_TABLE: {
+        drop_table_destroy(&(query + i)->sstr.drop_table);
+      } break;
+      case SCF_CREATE_INDEX: {
+        create_index_destroy(&(query + i)->sstr.create_index);
+      } break;
+      case SCF_CREATE_UNIQUE_INDEX: {
+        create_index_destroy(&(query + i)->sstr.create_index);
+      } break;
+      case SCF_DROP_INDEX: {
+        drop_index_destroy(&(query + i)->sstr.drop_index);
+      } break;
+      case SCF_SYNC: {
+      } break;
+      case SCF_SHOW_TABLES:
+        break;
 
-    case SCF_DESC_TABLE: {
-      desc_table_destroy(&query->sstr.desc_table);
-    } break;
+      case SCF_DESC_TABLE: {
+        desc_table_destroy(&(query + i)->sstr.desc_table);
+      } break;
 
-    case SCF_LOAD_DATA: {
-      load_data_destroy(&query->sstr.load_data);
-    } break;
-    case SCF_BEGIN:
-    case SCF_COMMIT:
-    case SCF_ROLLBACK:
-    case SCF_HELP:
-    case SCF_EXIT:
-    case SCF_ERROR:
-      break;
+      case SCF_LOAD_DATA: {
+        load_data_destroy(&(query + i)->sstr.load_data);
+      } break;
+      case SCF_BEGIN:
+      case SCF_COMMIT:
+      case SCF_ROLLBACK:
+      case SCF_HELP:
+      case SCF_EXIT:
+      case SCF_ERROR:
+        break;
+    }
   }
 }
 
