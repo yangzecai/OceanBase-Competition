@@ -240,8 +240,7 @@ void selects_init(Selects* selects, ...);
 void selects_append_aggregate(Selects* selects, Aggregate* aggregate);
 void selects_append_attribute(Selects* selects, RelAttr* rel_attr);
 void selects_append_relation(Selects* selects, const char* relation_name);
-void selects_append_conditions(Selects* selects, Condition conditions[],
-                               size_t condition_num);
+void selects_append_condition(Selects* selects, Condition* condition);
 void selects_append_order(Selects* selects, Order* order);
 void selects_append_group(Selects* selects, RelAttr* rel_attr);
 void selects_destroy(Selects* selects);
