@@ -397,6 +397,8 @@ select:				/*  select 语句的语法解析树*/
 			// CONTEXT->ssql->sstr.selection.relations[CONTEXT->from_length++]=$4;
 			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4);
 
+      selects_append_conditions(&CONTEXT->ssql->sstr.selection, CONTEXT->conditions, CONTEXT->condition_length);
+
 			CONTEXT->ssql->flag=SCF_SELECT;//"select";
 			// CONTEXT->ssql->sstr.selection.attr_num = CONTEXT->select_length;
 
@@ -516,7 +518,7 @@ condition:
 
 			Condition condition;
 			condition_init(&condition, $2, 1, &left_attr, NULL, 0, NULL, right_value);
-      selects_append_condition(&CONTEXT->ssql->sstr.selection, &condition);
+      CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 			// $$ = ( Condition *)malloc(sizeof( Condition));
 			// $$->left_is_attr = 1;
 			// $$->left_attr.relation_name = NULL;
@@ -535,7 +537,7 @@ condition:
 
 			Condition condition;
 			condition_init(&condition, $2, 0, NULL, left_value, 0, NULL, right_value);
-			selects_append_condition(&CONTEXT->ssql->sstr.selection, &condition);
+			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 			// $$ = ( Condition *)malloc(sizeof( Condition));
 			// $$->left_is_attr = 0;
 			// $$->left_attr.relation_name=NULL;
@@ -557,7 +559,7 @@ condition:
 
 			Condition condition;
 			condition_init(&condition, $2, 1, &left_attr, NULL, 1, &right_attr, NULL);
-			selects_append_condition(&CONTEXT->ssql->sstr.selection, &condition);
+			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 			// $$=( Condition *)malloc(sizeof( Condition));
 			// $$->left_is_attr = 1;
 			// $$->left_attr.relation_name=NULL;
@@ -576,7 +578,7 @@ condition:
 
 			Condition condition;
 			condition_init(&condition, $2, 0, NULL, left_value, 1, &right_attr, NULL);
-			selects_append_condition(&CONTEXT->ssql->sstr.selection, &condition);
+			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 
 			// $$=( Condition *)malloc(sizeof( Condition));
 			// $$->left_is_attr = 0;
@@ -598,7 +600,7 @@ condition:
 
 			Condition condition;
 			condition_init(&condition, $4, 1, &left_attr, NULL, 0, NULL, right_value);
-			selects_append_condition(&CONTEXT->ssql->sstr.selection, &condition);
+			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 
 			// $$=( Condition *)malloc(sizeof( Condition));
 			// $$->left_is_attr = 1;
@@ -620,7 +622,7 @@ condition:
 
 			Condition condition;
 			condition_init(&condition, $2, 0, NULL, left_value, 1, &right_attr, NULL);
-			selects_append_condition(&CONTEXT->ssql->sstr.selection, &condition);
+			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 			// $$=( Condition *)malloc(sizeof( Condition));
 			// $$->left_is_attr = 0;//属性值
 			// $$->left_attr.relation_name=NULL;
@@ -641,7 +643,7 @@ condition:
 
 			Condition condition;
 			condition_init(&condition, $4, 1, &left_attr, NULL, 1, &right_attr, NULL);
-			selects_append_condition(&CONTEXT->ssql->sstr.selection, &condition);
+			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 			// $$=( Condition *)malloc(sizeof( Condition));
 			// $$->left_is_attr = 1;		//属性
 			// $$->left_attr.relation_name=$1;
