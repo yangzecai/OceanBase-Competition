@@ -372,7 +372,7 @@ RC Table::make_record(int value_num, const Value* values, char*& record_out) {
       memcpy(record + field->offset(), &offset, field->len());
 
       std::ofstream ofs;
-      ofs.open(text_file, std::ios::app);
+      ofs.open(text_file, std::ios::binary | std::ios::app);
       char write_data[4096];
       strncpy(write_data, (char*)value.data, 4096);
       for (int j = 0; j < 4096; j++) {
@@ -760,6 +760,21 @@ class RecordUpdater {
     RC rc = RC::SUCCESS;
     if (value_->type == NULLS) {
       memset(record->data + field_meta_->offset() + field_meta_->len(), 1, 1);
+    } else if (value_->type == TEXTS) {
+      std::string text_file = std::string("./miniob/db/sys") + "/" +
+                              table_.table_meta().name() + "_" +
+                              field_meta_->name() + TABLE_TEXT_SUFFIX;
+      std::fstream fs;
+      fs.open(text_file, std::ios::binary | std::ios::out | std::ios::in);
+      int offset;
+      memcpy(&offset, record->data + field_meta_->offset(), field_meta_->len());
+      fs.seekp(offset, std::ios::beg);
+      char update_data[4096];
+      strncpy(update_data, (char*)value_->data, 4096);
+      for (int i = 0; i < 4096; i++) {
+        fs << update_data[i];
+      }
+      fs.close();
     } else {
       memcpy(record->data + field_meta_->offset(), value_->data,
              field_meta_->len());
