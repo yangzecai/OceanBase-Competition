@@ -6,6 +6,8 @@
 #include "sql/parser/lex.yy.h"
 // #include "common/log/log.h" // 包含C++中的头文件
 
+// int yydebug = 1;
+
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
@@ -128,6 +130,7 @@ ParserContext *get_context(yyscan_t scanner)
         NULL_T
         NULLABLE_T
         IS
+        IN
 
 %union {
   struct _Attr *attr;
@@ -370,6 +373,10 @@ value:
     | NULL_T {
       value_init_null(&CONTEXT->values[CONTEXT->value_length++]);
     }
+    | sub_query {
+      Selects* sub_query = &(CONTEXT->ssql + CONTEXT->select_frame_index + 1)->sstr.selection;
+      value_init_sub_query(&CONTEXT->values[CONTEXT->value_length++], sub_query);
+    }
     ;
 
 delete:		/*  delete 语句的语法解析树*/
@@ -413,6 +420,27 @@ select:				/*  select 语句的语法解析树*/
       CONTEXT->select_frame_index--;
     }
     ;
+sub_query:
+    LBRACE select_prepare select_attr FROM ID rel_list inner_join_list where order group RBRACE
+    {
+			selects_append_relation(&(CONTEXT->ssql + CONTEXT->select_frame_index)->sstr.selection, $5);
+
+      size_t last_condition_length = CONTEXT->select_frame[CONTEXT->select_frame_index].last_condition_length;
+      Condition* this_frame_conditions = CONTEXT->conditions + last_condition_length;
+      size_t this_frame_condition_length = CONTEXT->condition_length - last_condition_length;
+      selects_append_conditions(&(CONTEXT->ssql + CONTEXT->select_frame_index)->sstr.selection, this_frame_conditions, this_frame_condition_length);
+
+			(CONTEXT->ssql + CONTEXT->select_frame_index)->flag=SCF_SELECT;//"select";
+
+			//临时变量清零
+			CONTEXT->from_length=0;
+			CONTEXT->select_length=0;
+
+      CONTEXT->condition_length = last_condition_length;
+      CONTEXT->value_length = CONTEXT->select_frame[CONTEXT->select_frame_index].last_value_length;
+      CONTEXT->select_frame_index--;
+    }
+    ;
 
 select_prepare:
     SELECT {
@@ -420,6 +448,7 @@ select_prepare:
       CONTEXT->select_frame[CONTEXT->select_frame_index].last_condition_length = CONTEXT->condition_length;
       CONTEXT->select_frame[CONTEXT->select_frame_index].last_value_length = CONTEXT->value_length;
     }
+    ;
 
 select_attr:
     STAR {  
@@ -675,6 +704,8 @@ comOp:
     | NE { $$ = NOT_EQUAL; }
     | IS { $$ = IS_NULL; }
     | IS NOT { $$ = IS_NOT_NULL; }
+    | IN { $$ = OP_IN; }
+    | NOT IN { $$ = NOT_IN; }
     ;
 order:
     /* empty */

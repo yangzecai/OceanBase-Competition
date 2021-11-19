@@ -88,6 +88,7 @@ QUOTE            [\'\"]
 [Nn][Uu][Ll][Ll]                         RETURN_TOKEN(NULL_T);
 [Nn][Uu][Ll][Ll][Aa][Bb][Ll][Ee]         RETURN_TOKEN(NULLABLE_T);
 [Ii][Ss]                                 RETURN_TOKEN(IS);
+[Ii][Nn]                                 RETURN_TOKEN(IN);
 {ID}							                       yylval->string=strdup(yytext); RETURN_TOKEN(ID);
 "("								                       RETURN_TOKEN(LBRACE);
 ")"								                       RETURN_TOKEN(RBRACE);

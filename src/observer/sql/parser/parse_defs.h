@@ -39,11 +39,22 @@ typedef enum {
   GREAT_THAN,   //">"     5
   IS_NULL,
   IS_NOT_NULL,
+  OP_IN,
+  NOT_IN,
   NO_OP
 } CompOp;
 
 //属性值类型
-typedef enum { UNDEFINED, CHARS, INTS, FLOATS, DATES, NULLS, TEXTS } AttrType;
+typedef enum {
+  UNDEFINED,
+  CHARS,
+  INTS,
+  FLOATS,
+  DATES,
+  NULLS,
+  TEXTS,
+  SUB_QUERYS
+} AttrType;
 
 //属性值
 typedef struct _Value {
@@ -224,6 +235,7 @@ void value_init_string(Value* value, const char* v);
 void value_init_text(Value* value, const char* v, size_t string_length);
 void value_init_date(Value* value, const char* v);
 void value_init_null(Value* value);
+void value_init_sub_query(Value* value, Selects* sub_query);
 void value_destroy(Value* value);
 
 void condition_init(Condition* condition, CompOp comp, int left_is_attr,

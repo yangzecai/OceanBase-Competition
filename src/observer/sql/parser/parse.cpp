@@ -162,6 +162,13 @@ void value_init_null(Value* value) {
   value->type = NULLS;
   value->data = strdup("null");
 }
+void value_init_sub_query(Value* value, Selects* sub_query) {
+  value->type = SUB_QUERYS;
+  value->data = malloc(sizeof(Selects));
+  memcpy(value->data, sub_query, sizeof(Selects));
+  memset(sub_query, 0, sizeof(Selects));
+  // FIXME: 没有释放内存
+}
 void value_destroy(Value* value) {
   value->type = UNDEFINED;
   free(value->data);
