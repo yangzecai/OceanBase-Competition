@@ -22,7 +22,8 @@ SelectHandler::~SelectHandler() {
   select_filters_.clear();
 }
 
-RC SelectHandler::init(const char* db, Selects* selects, Trx* trx) {
+RC SelectHandler::init(const char* db, Selects* selects, Trx* trx,
+                       const std::vector<Table*>* parent_tables) {
   RC rc = RC::SUCCESS;
   db_ = db;
   trx_ = trx;
@@ -32,6 +33,13 @@ RC SelectHandler::init(const char* db, Selects* selects, Trx* trx) {
   if (rc != RC::SUCCESS) {
     return rc;
   }
+  if (parent_tables != nullptr && can_merge_parent_tables(selects)) {
+    rc = merge_parent_tables(*parent_tables);
+    if (rc != RC::SUCCESS) {
+      return rc;
+    }
+  }
+
   rc = init_schemas();
   if (rc != RC::SUCCESS) {
     return rc;
@@ -273,7 +281,7 @@ RC SelectHandler::add_attribute_to_schema(const RelAttr* attribute,
   const char* attr_name = attribute->attribute_name;
 
   if (table_name == nullptr && *attr_name == '*') {  // *
-    for (Table* table : tables_) {
+    for (const Table* table : tables_) {
       TupleSchema::from_table(table, *schema);
     }
 
@@ -282,11 +290,11 @@ RC SelectHandler::add_attribute_to_schema(const RelAttr* attribute,
     if (-1 == table_index) {
       return RC::SCHEMA_TABLE_NAME_ILLEGAL;
     }
-    Table* table = tables_[table_index];
+    const Table* table = tables_[table_index];
     TupleSchema::from_table(table, *schema);
 
   } else if (table_name == nullptr && selects_->relation_num == 1) {  // a
-    Table* table = tables_.back();
+    const Table* table = tables_.back();
     const FieldMeta* field_meta = table->table_meta().field(attr_name);
     if (nullptr == field_meta) {
       return RC::SCHEMA_FIELD_MISSING;
@@ -299,7 +307,7 @@ RC SelectHandler::add_attribute_to_schema(const RelAttr* attribute,
     if (-1 == table_index) {
       return RC::SCHEMA_TABLE_NAME_ILLEGAL;
     }
-    Table* table = tables_[table_index];
+    const Table* table = tables_[table_index];
     const FieldMeta* field_meta = table->table_meta().field(attr_name);
     if (nullptr == field_meta) {
       return RC::SCHEMA_FIELD_MISSING;
@@ -401,7 +409,7 @@ RC SelectHandler::solve_sub_query_if_exist(Condition* condition) {
     // FIXME: 没考虑释放内存
     TupleSet* result_set = new TupleSet();
     SelectHandler select_handler;
-    rc = select_handler.init(db_, selects, trx_);
+    rc = select_handler.init(db_, selects, trx_, &tables_);
     if (rc != RC::SUCCESS) {
       return rc;
     }
@@ -451,7 +459,7 @@ RC SelectHandler::solve_sub_query_if_exist(Condition* condition) {
 
     TupleSet* result_set = new TupleSet();
     SelectHandler select_handler;
-    rc = select_handler.init(db_, selects, trx_);
+    rc = select_handler.init(db_, selects, trx_, &tables_);
     if (rc != RC::SUCCESS) {
       return rc;
     }
@@ -496,4 +504,44 @@ RC SelectHandler::solve_sub_query_if_exist(Condition* condition) {
     }
   }
   return rc;
+}
+
+bool SelectHandler::can_merge_parent_tables(const Selects* selects) const {
+  if (selects->relation_num != 1) {
+    return true;
+  }
+
+  for (size_t i = 0; i < selects->attr_num; ++i) {
+    if (selects->attributes[i].relation_name == nullptr) {
+      return false;
+    }
+  }
+
+  for (size_t i = 0; i < selects->condition_num; ++i) {
+    const Condition& condition = selects->conditions[i];
+    if (condition.left_is_attr) {
+      if (condition.left_attr.relation_name == nullptr) {
+        return false;
+      }
+    }
+    if (condition.right_is_attr) {
+      if (condition.right_attr.relation_name == nullptr) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+RC SelectHandler::merge_parent_tables(
+    const std::vector<Table*>& parent_tables) {
+  for (Table* table : parent_tables) {
+    std::string table_name(table->name());
+    if (table_indexes_.find(table_name) == table_indexes_.end()) {
+      table_indexes_[table_name] = tables_.size();
+      tables_.push_back(table);
+    }
+  }
+  return RC::SUCCESS;
 }

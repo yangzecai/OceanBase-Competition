@@ -13,7 +13,8 @@ class SelectHandler {
  public:
   SelectHandler();
   ~SelectHandler();
-  RC init(const char* db, Selects* selects, Trx* trx);
+  RC init(const char* db, Selects* selects, Trx* trx,
+          const std::vector<Table*>* parent_tables = nullptr);
   RC handle(TupleSet& tuple_set);
 
   bool is_multi_table() { return tables_.size() > 1; }
@@ -46,6 +47,9 @@ class SelectHandler {
   bool is_join_condition(const Condition* condition);
 
   RC solve_sub_query_if_exist(Condition* condition);
+
+  bool can_merge_parent_tables(const Selects* selects) const;
+  RC merge_parent_tables(const std::vector<Table*>& parent_tables);
 
   const char* db_;
   Trx* trx_;

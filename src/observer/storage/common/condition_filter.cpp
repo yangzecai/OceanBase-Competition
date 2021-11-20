@@ -89,7 +89,7 @@ bool DefaultConditionFilter::is_match_type(AttrType left_type,
   }
 }
 
-RC DefaultConditionFilter::init(Table& table, const Condition& condition) {
+RC DefaultConditionFilter::init(const Table& table, const Condition& condition) {
   const TableMeta& table_meta = table.table_meta();
   ConDesc left;
   ConDesc right;

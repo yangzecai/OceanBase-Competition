@@ -48,7 +48,7 @@ class DefaultConditionFilter : public ConditionFilter {
 
   RC init(const ConDesc& left, const ConDesc& right, AttrType left_type,
           AttrType right_type, CompOp comp_op);
-  RC init(Table& table, const Condition& condition);
+  RC init(const Table& table, const Condition& condition);
 
   virtual bool filter(const Record& rec) const;
 
