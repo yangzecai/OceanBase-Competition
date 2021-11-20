@@ -92,19 +92,25 @@ class BPManager {
     allocated = nullptr;
   }
 
-  Frame* alloc() {
-    return nullptr;  // TODO for test
-  }
+  Frame* alloc();
 
-  Frame* get(int file_desc, PageNum page_num) {
-    return nullptr;  // TODO for test
-  }
+  Frame* get(int file_desc, PageNum page_num);
+
+  RC dispose(Frame* buf);
+
+  RC dispose(int file_desc, PageNum page_num);
+
+  RC flush(Frame* f);
+
+  RC force_page(int file_desc, PageNum page_num);
+
+  RC force_all_pages(int file_desc);
 
   Frame* getFrame() { return frame; }
 
   bool* getAllocated() { return allocated; }
 
- public:
+ private:
   int size;
   Frame* frame = nullptr;
   bool* allocated = nullptr;
