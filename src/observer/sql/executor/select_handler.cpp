@@ -512,7 +512,15 @@ bool SelectHandler::can_merge_parent_tables(const Selects* selects) const {
   }
 
   for (size_t i = 0; i < selects->attr_num; ++i) {
-    if (selects->attributes[i].relation_name == nullptr) {
+    if (selects->attributes[i].relation_name == nullptr &&
+        *selects->attributes[i].attribute_name != '\0') {
+      return false;
+    }
+  }
+
+  for (size_t i = 0; i < selects->aggregate_num; ++i) {
+    const Aggregate& aggregate = selects->aggregates[i];
+    if (aggregate.is_attr && aggregate.attr.relation_name == nullptr) {
       return false;
     }
   }
