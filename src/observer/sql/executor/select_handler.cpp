@@ -460,14 +460,12 @@ RC SelectHandler::solve_sub_query_if_exist(Condition* condition) {
       return rc;
     }
 
-    if (result_set->size() > 1) {
-      if (condition->comp == OP_IN || condition->comp == NOT_IN) {
-        condition->right_value.data = result_set;
-      } else {
-        return RC::GENERIC_ERROR;
-      }
+    if (condition->comp == OP_IN || condition->comp == NOT_IN) {
+      condition->right_value.data = result_set;
     } else if (result_set->size() == 0) {
       condition->right_value.data = result_set;
+    } else if (result_set->size() > 1) {
+      return RC::INVALID_ARGUMENT;
     } else {
       const auto& value = result_set->tuples()[0].get_pointer(0);
       switch (value->type()) {
