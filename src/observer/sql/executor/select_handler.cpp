@@ -22,8 +22,7 @@ SelectHandler::~SelectHandler() {
   select_filters_.clear();
 }
 
-RC SelectHandler::init(const char* db, Selects* selects, Trx* trx,
-                       const std::vector<Table*>* parent_tables) {
+RC SelectHandler::init(const char* db, Selects* selects, Trx* trx) {
   RC rc = RC::SUCCESS;
   db_ = db;
   trx_ = trx;
@@ -33,13 +32,6 @@ RC SelectHandler::init(const char* db, Selects* selects, Trx* trx,
   if (rc != RC::SUCCESS) {
     return rc;
   }
-  if (parent_tables != nullptr && can_merge_parent_tables(selects)) {
-    rc = merge_parent_tables(*parent_tables);
-    if (rc != RC::SUCCESS) {
-      return rc;
-    }
-  }
-
   rc = init_schemas();
   if (rc != RC::SUCCESS) {
     return rc;
@@ -202,7 +194,7 @@ bool SelectHandler::is_aggregate(const RelAttr* attribute) {
   return *attribute->attribute_name == '\0';
 }
 
-int SelectHandler::index_of_table(std::string table_name) {
+int SelectHandler::index_of_table(std::string table_name) const {
   auto iter = table_indexes_.find(table_name);
   if (iter != table_indexes_.end()) {
     return iter->second;
@@ -409,8 +401,16 @@ RC SelectHandler::solve_sub_query_if_exist(Condition* condition) {
     // FIXME: 没考虑释放内存
     TupleSet* result_set = new TupleSet();
     SelectHandler select_handler;
-    rc = select_handler.init(db_, selects, trx_, &tables_);
+    rc = select_handler.init(db_, selects, trx_);
     if (rc != RC::SUCCESS) {
+      if (select_handler.is_correlated_sub_query()) {
+        std::vector<Correlation> new_correlations =
+            select_handler.get_correlations();
+        parent_to_child_.insert(parent_to_child_.end(),
+                                new_correlations.begin(),
+                                new_correlations.end());
+        return RC::SUCCESS;
+      }
       return rc;
     }
     rc = select_handler.handle(*result_set);
@@ -459,7 +459,7 @@ RC SelectHandler::solve_sub_query_if_exist(Condition* condition) {
 
     TupleSet* result_set = new TupleSet();
     SelectHandler select_handler;
-    rc = select_handler.init(db_, selects, trx_, &tables_);
+    rc = select_handler.init(db_, selects, trx_);
     if (rc != RC::SUCCESS) {
       return rc;
     }
@@ -506,50 +506,52 @@ RC SelectHandler::solve_sub_query_if_exist(Condition* condition) {
   return rc;
 }
 
-bool SelectHandler::can_merge_parent_tables(const Selects* selects) const {
-  if (selects->relation_num != 1) {
-    return true;
-  }
-
-  for (size_t i = 0; i < selects->attr_num; ++i) {
-    if (selects->attributes[i].relation_name == nullptr &&
-        *selects->attributes[i].attribute_name != '\0') {
-      return false;
-    }
-  }
-
-  for (size_t i = 0; i < selects->aggregate_num; ++i) {
-    const Aggregate& aggregate = selects->aggregates[i];
-    if (aggregate.is_attr && aggregate.attr.relation_name == nullptr) {
-      return false;
-    }
-  }
-
-  for (size_t i = 0; i < selects->condition_num; ++i) {
-    const Condition& condition = selects->conditions[i];
+bool SelectHandler::is_correlated_sub_query() const {
+  assert(!tables_.empty());
+  for (size_t i = 0; i < selects_->condition_num; ++i) {
+    Condition& condition = selects_->conditions[i];
     if (condition.left_is_attr) {
-      if (condition.left_attr.relation_name == nullptr) {
+      const char* table_name = condition.left_attr.relation_name;
+      if (table_name == nullptr) {
         return false;
+      } else if (index_of_table(table_name) == -1) {
+        return true;
       }
     }
     if (condition.right_is_attr) {
-      if (condition.right_attr.relation_name == nullptr) {
+      const char* table_name = condition.right_attr.relation_name;
+      if (table_name == nullptr) {
         return false;
+      } else if (index_of_table(table_name) == -1) {
+        return true;
       }
     }
   }
-
-  return true;
+  return false;
 }
-
-RC SelectHandler::merge_parent_tables(
-    const std::vector<Table*>& parent_tables) {
-  for (Table* table : parent_tables) {
-    std::string table_name(table->name());
-    if (table_indexes_.find(table_name) == table_indexes_.end()) {
-      table_indexes_[table_name] = tables_.size();
-      tables_.push_back(table);
+std::vector<Correlation> SelectHandler::get_correlations() {
+  assert(!tables_.empty());
+  std::vector<Correlation> correlations;
+  for (size_t i = 0; i < selects_->condition_num; ++i) {
+    Condition& condition = selects_->conditions[i];
+    if (condition.left_is_attr) {
+      const char* table_name = condition.left_attr.relation_name;
+      if (index_of_table(table_name) == -1) {
+        correlations.emplace_back(condition.left_attr, &condition.left_value);
+        condition.left_is_attr = 0;
+      }
+    }
+    if (condition.right_is_attr) {
+      const char* table_name = condition.right_attr.relation_name;
+      if (index_of_table(table_name) == -1) {
+        correlations.emplace_back(condition.right_attr, &condition.right_value);
+        condition.right_is_attr = 0;
+      }
     }
   }
-  return RC::SUCCESS;
+  return correlations;
+}
+
+RC SelectHandler::init_correlations() {
+  
 }

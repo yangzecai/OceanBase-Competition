@@ -17,6 +17,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 #include "condition_filter.h"
 #include "record_manager.h"
+#include "sql/executor/select_handler.h"
 #include "sql/executor/tuple.h"
 #include "storage/common/table.h"
 
@@ -89,7 +90,8 @@ bool DefaultConditionFilter::is_match_type(AttrType left_type,
   }
 }
 
-RC DefaultConditionFilter::init(const Table& table, const Condition& condition) {
+RC DefaultConditionFilter::init(const Table& table,
+                                const Condition& condition) {
   const TableMeta& table_meta = table.table_meta();
   ConDesc left;
   ConDesc right;
@@ -379,4 +381,58 @@ bool CompositeConditionFilter::filter(const Record& rec) const {
     }
   }
   return true;
+}
+
+CorrelationFilter::~CorrelationFilter() {}
+
+RC CorrelationFilter::init(const Table& parent_table,
+                           Correlation* parent_to_child,
+                           Correlation* child_to_parent, const char* db,
+                           Selects* child_selects, Trx* trx,
+                           Condition* condition) {
+  parent_table_ = &parent_table;
+  parent_to_child_ = parent_to_child;
+  child_to_parent_ = child_to_parent;
+  db_ = db;
+  child_selects_ = child_selects;
+  trx_ = trx;
+  condition_ = condition;
+
+  return RC::SUCCESS;
+}
+
+bool CorrelationFilter::filter(const Record& rec) const {
+  const TableMeta& table_meta = parent_table_->table_meta();
+  const FieldMeta* field =
+      table_meta.field(parent_to_child_->rel_attr.attribute_name);
+
+  parent_to_child_->value->type = field->type();
+  parent_to_child_->value->data = rec.data + field->offset();
+
+  SelectHandler select_handler;
+  RC rc = select_handler.init(db_, child_selects_, trx_);
+  if (rc != RC::SUCCESS) {
+    return false;
+  }
+  TupleSet result_set;
+  rc = select_handler.handle(result_set);
+  if (rc != RC::SUCCESS) {
+    return false;
+  }
+
+  if (result_set.size() == 0) {
+    return false;
+  }
+
+  const std::shared_ptr<TupleValue> tuple_value =
+      result_set.tuples()[0].get_pointer(0);
+
+  child_to_parent_->value->type = tuple_value->type();
+  child_to_parent_->value->data = const_cast<void*>(tuple_value->get());
+
+  rc = condition_filter_.init(*parent_table_, *condition_);
+  if (rc != RC::SUCCESS) {
+    return false;
+  }
+  return condition_filter_.filter(rec);
 }

@@ -159,4 +159,17 @@ class AggregateExeNode : public ExecutionNode {
   Cols group_attr_indexes_;
 };
 
+class CorrelationExeNode : public ExecutionNode {
+ public:
+  CorrelationExeNode();
+  virtual ~CorrelationExeNode();
+
+  RC init(Trx* trx, SelectHandler* handler);
+  RC execute(TupleSet& tuple_set) override;
+
+ private:
+  SelectHandler* handler_;
+  TupleSchema tuple_schema_;
+};
+
 #endif  //__OBSERVER_SQL_EXECUTOR_EXECUTION_NODE_H_

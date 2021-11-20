@@ -9,15 +9,22 @@
 #include "sql/executor/tuple.h"
 #include "sql/parser/parse_defs.h"
 
+struct Correlation {
+  RelAttr rel_attr;
+  Value* value;
+};
+
 class SelectHandler {
  public:
   SelectHandler();
   ~SelectHandler();
-  RC init(const char* db, Selects* selects, Trx* trx,
-          const std::vector<Table*>* parent_tables = nullptr);
+  RC init(const char* db, Selects* selects, Trx* trx);
   RC handle(TupleSet& tuple_set);
 
   bool is_multi_table() { return tables_.size() > 1; }
+
+  bool is_correlated_sub_query() const;
+  std::vector<Correlation> get_correlations();
 
  private:
   friend class AggregateExeNode;
@@ -30,10 +37,11 @@ class SelectHandler {
   RC init_schemas();
   RC init_conditions();
   RC init_exe_nodes();
+  RC init_correlations();
 
   bool is_aggregate(const RelAttr* attribute);
 
-  int index_of_table(std::string table_name);
+  int index_of_table(std::string table_name) const;
 
   RC add_attribute_to_select_schemas(const RelAttr* attribute);
   RC add_aggregate_to_select_schemas(const Aggregate* aggregate);
@@ -48,9 +56,6 @@ class SelectHandler {
 
   RC solve_sub_query_if_exist(Condition* condition);
 
-  bool can_merge_parent_tables(const Selects* selects) const;
-  RC merge_parent_tables(const std::vector<Table*>& parent_tables);
-
   const char* db_;
   Trx* trx_;
   Selects* selects_;
@@ -61,6 +66,9 @@ class SelectHandler {
   std::vector<JoinExeNode::JoinFilter> join_filter_;
   std::unordered_map<std::string, int> table_indexes_;
   std::shared_ptr<ExecutionNode> root_exe_node_;
+
+  std::vector<Correlation> parent_to_child_;
+  std::vector<Correlation> child_to_parent_;
 };
 
 #endif
