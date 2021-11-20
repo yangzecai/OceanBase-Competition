@@ -11,11 +11,13 @@ See the Mulan PSL v2 for more details. */
 // Created by Wangyunlai on 2021/5/7.
 //
 
+#include <math.h>
 #include <stddef.h>
 
 #include "common/log/log.h"
 #include "condition_filter.h"
 #include "record_manager.h"
+#include "sql/executor/tuple.h"
 #include "storage/common/table.h"
 
 int condition_float_compare(float f1, float f2) {
@@ -44,10 +46,17 @@ DefaultConditionFilter::DefaultConditionFilter() {
 DefaultConditionFilter::~DefaultConditionFilter() {}
 
 RC DefaultConditionFilter::init(const ConDesc& left, const ConDesc& right,
-                                AttrType attr_type, CompOp comp_op) {
-  if (attr_type < CHARS || attr_type > NULLS) {
+                                AttrType left_type, AttrType right_type,
+                                CompOp comp_op) {
+  if (left_type < CHARS || left_type > SUB_QUERYS) {
     LOG_ERROR("Invalid condition with unsupported attribute type: %d",
-              attr_type);
+              left_type);
+    return RC::INVALID_ARGUMENT;
+  }
+
+  if (right_type < CHARS || right_type > SUB_QUERYS) {
+    LOG_ERROR("Invalid condition with unsupported attribute type: %d",
+              right_type);
     return RC::INVALID_ARGUMENT;
   }
 
@@ -59,9 +68,25 @@ RC DefaultConditionFilter::init(const ConDesc& left, const ConDesc& right,
 
   left_ = left;
   right_ = right;
-  attr_type_ = attr_type;
+  left_type_ = left_type;
+  right_type_ = right_type;
   comp_op_ = comp_op;
   return RC::SUCCESS;
+}
+
+bool DefaultConditionFilter::is_match_type(AttrType left_type,
+                                           AttrType right_type) const {
+  if (left_type == INTS && right_type == FLOATS) {
+    return true;
+  } else if (left_type == FLOATS && right_type == INTS) {
+    return true;
+  } else if (left_type != SUB_QUERYS && right_type == SUB_QUERYS) {
+    return true;
+  } else if (left_type == right_type) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 RC DefaultConditionFilter::init(Table& table, const Condition& condition) {
@@ -134,24 +159,20 @@ RC DefaultConditionFilter::init(Table& table, const Condition& condition) {
     right.attr_nullable = false;
   }
 
-  // 校验和转换
-  //  if (!field_type_compare_compatible_table[type_left][type_right]) {
-  //    // 不能比较的两个字段， 要把信息传给客户端
-  //    return RC::SCHEMA_FIELD_TYPE_MISMATCH;
-  //  }
-  // NOTE：这里没有实现不同类型的数据比较，比如整数跟浮点数之间的对比
-  // 但是选手们还是要实现。这个功能在预选赛中会出现
   if (type_left == NULLS || type_right == NULLS) {
     type_left = NULLS;
-  } else if (type_left != type_right) {
+    type_right = NULLS;
+  }
+
+  if (!is_match_type(type_left, type_right)) {
     return RC::SCHEMA_FIELD_TYPE_MISMATCH;
   }
 
-  return init(left, right, type_left, condition.comp);
+  return init(left, right, type_left, type_right, condition.comp);
 }
 
 bool DefaultConditionFilter::filter(const Record& rec) const {
-  if (attr_type_ == NULLS) {
+  if (left_type_ == NULLS) {
     if (comp_op_ != IS_NULL && comp_op_ != IS_NOT_NULL) {
       return false;
     }
@@ -185,53 +206,118 @@ bool DefaultConditionFilter::filter(const Record& rec) const {
     right_value = (char*)right_.value;
   }
 
-  int cmp_result = 0;
-  switch (attr_type_) {
-    case CHARS: {  // 字符串都是定长的，直接比较
-      // 按照C字符串风格来定
-      cmp_result = strcmp(left_value, right_value);
-    } break;
-    case INTS: {
-      // 没有考虑大小端问题
-      // 对int和float，要考虑字节对齐问题,有些平台下直接转换可能会跪
-      int left = *(int*)left_value;
-      int right = *(int*)right_value;
-      cmp_result = (int)(left - right);
-    } break;
-    case FLOATS: {
-      float left = *(float*)left_value;
-      float right = *(float*)right_value;
-      cmp_result = condition_float_compare(left, right);
-    } break;
-    case DATES: {
-      int left = *(int*)left_value;
-      int right = *(int*)right_value;
-      cmp_result = left - right;
-    } break;
-    default: {
+  if (right_type_ != SUB_QUERYS) {
+    int cmp_result = 0;
+    if (left_type_ == right_type_) {
+      switch (left_type_) {
+        case CHARS: {  // 字符串都是定长的，直接比较
+          // 按照C字符串风格来定
+          cmp_result = strcmp(left_value, right_value);
+        } break;
+        case INTS: {
+          // 没有考虑大小端问题
+          // 对int和float，要考虑字节对齐问题,有些平台下直接转换可能会跪
+          int left = *(int*)left_value;
+          int right = *(int*)right_value;
+          cmp_result = (int)(left - right);
+        } break;
+        case FLOATS: {
+          float left = *(float*)left_value;
+          float right = *(float*)right_value;
+          cmp_result = condition_float_compare(left, right);
+        } break;
+        case DATES: {
+          int left = *(int*)left_value;
+          int right = *(int*)right_value;
+          cmp_result = left - right;
+        } break;
+        default: {
+        }
+      }
+    } else {
+      if (left_type_ == INTS && right_type_ == FLOATS) {
+        float left = (float)(*(int*)left_value);
+        float right = *(float*)right_value;
+        cmp_result = condition_float_compare(left, right);
+      } else if (left_type_ == FLOATS && right_type_ == INTS) {
+        float left = *(float*)left_value;
+        float right = (float)(*(int*)right_value);
+        cmp_result = condition_float_compare(left, right);
+      } else {
+        LOG_PANIC("Never should print this.");
+        return false;
+      }
+    }
+
+    switch (comp_op_) {
+      case EQUAL_TO:
+        return 0 == cmp_result;
+      case LESS_EQUAL:
+        return cmp_result <= 0;
+      case NOT_EQUAL:
+        return cmp_result != 0;
+      case LESS_THAN:
+        return cmp_result < 0;
+      case GREAT_EQUAL:
+        return cmp_result >= 0;
+      case GREAT_THAN:
+        return cmp_result > 0;
+
+      default:
+        return false;
+        break;
+    }
+  } else {  // left_type_ == SUB_QUERYS || right_type_ == SUB_QUERYS
+    TupleSet* sub_query_result_set = ((TupleSet*)right_value);
+    AttrType sub_query_type = sub_query_result_set->schema().field(0).type();
+    if (left_type_ != sub_query_type) {
+      return false;
+    }
+    std::shared_ptr<TupleValue> left_tuple_value;
+    switch (left_type_) {
+      case INTS:
+        left_tuple_value = std::make_shared<IntValue>(*(int*)left_value);
+        break;
+      case FLOATS:
+        left_tuple_value = std::make_shared<FloatValue>(*(float*)left_value);
+        break;
+      case CHARS:
+        left_tuple_value = std::make_shared<StringValue>(left_value, 4);
+        break;
+      case DATES:
+        left_tuple_value = std::make_shared<DateValue>(*(int*)left_value);
+        break;
+      default:
+        return false;
+        break;
+    }
+
+    for (const Tuple& tuple : sub_query_result_set->tuples()) {
+      const TupleValue& right_tuple_value = tuple.get(0);
+      int cmp_result = left_tuple_value->compare(right_tuple_value);
+      if (cmp_result == 0) {
+        if (comp_op_ == OP_IN) {
+          return true;
+        } else if (comp_op_ == NOT_IN) {
+          return false;
+        } else {
+          LOG_PANIC("Never should print this.");
+          return false;
+        }
+      }
+    }
+    if (comp_op_ == OP_IN) {
+      return false;
+    } else if (comp_op_ == NOT_IN) {
+      return true;
+    } else {
+      LOG_PANIC("Never should print this.");
+      return false;
     }
   }
 
-  switch (comp_op_) {
-    case EQUAL_TO:
-      return 0 == cmp_result;
-    case LESS_EQUAL:
-      return cmp_result <= 0;
-    case NOT_EQUAL:
-      return cmp_result != 0;
-    case LESS_THAN:
-      return cmp_result < 0;
-    case GREAT_EQUAL:
-      return cmp_result >= 0;
-    case GREAT_THAN:
-      return cmp_result > 0;
-
-    default:
-      break;
-  }
-
   LOG_PANIC("Never should print this.");
-  return cmp_result;  // should not go here
+  return false;  // should not go here
 }
 
 CompositeConditionFilter::~CompositeConditionFilter() {

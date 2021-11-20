@@ -8,7 +8,7 @@
 #include "storage/default/default_handler.h"
 
 SelectHandler::SelectHandler()
-    : db_(nullptr), session_event_(nullptr), trx_(nullptr), selects_(nullptr) {}
+    : db_(nullptr), trx_(nullptr), selects_(nullptr) {}
 
 SelectHandler::~SelectHandler() {
   if (!select_filters_.empty()) {
@@ -20,19 +20,13 @@ SelectHandler::~SelectHandler() {
     }
   }
   select_filters_.clear();
-
-  if (session_event_->get_response_len() == 0) {
-    session_event_->set_response("FAILURE\n");
-  }
 }
 
-RC SelectHandler::init(const char* db, Query* sql,
-                       SessionEvent* session_event) {
+RC SelectHandler::init(const char* db, Selects* selects, Trx* trx) {
   RC rc = RC::SUCCESS;
   db_ = db;
-  session_event_ = session_event;
-  trx_ = session_event->get_client()->session->current_trx();
-  selects_ = &sql->sstr.selection;
+  trx_ = trx;
+  selects_ = selects;
 
   rc = init_tables();
   if (rc != RC::SUCCESS) {
@@ -67,18 +61,8 @@ RC SelectHandler::init(const char* db, Query* sql,
   return rc;
 }
 
-RC SelectHandler::handle() {
-  TupleSet tuple_set;
-  RC rc = root_exe_node_->execute(tuple_set);
-  if (rc != RC::SUCCESS) {
-    return rc;
-  }
-
-  std::stringstream ss;
-  tuple_set.print(ss, tables_.size() > 1);
-  session_event_->set_response(ss.str());
-
-  return rc;
+RC SelectHandler::handle(TupleSet& tuple_set) {
+  return root_exe_node_->execute(tuple_set);
 }
 
 RC SelectHandler::init_tables() {
@@ -180,7 +164,7 @@ RC SelectHandler::init_conditions() {
   select_filters_.resize(tables_.size());
 
   for (size_t i = 0; i < selects_->condition_num; ++i) {
-    const Condition* condition = selects_->conditions + i;
+    Condition* condition = selects_->conditions + i;
     if ((condition->comp == IS_NULL || condition->comp == IS_NOT_NULL) &&
         condition->right_value.type != NULLS) {
       LOG_WARN("Condition invalid");
@@ -192,6 +176,10 @@ RC SelectHandler::init_conditions() {
         return rc;
       }
     } else {
+      rc = solve_sub_query_if_exist(condition);
+      if (rc != RC::SUCCESS) {
+        return rc;
+      }
       rc = add_condition_to_select_filters(condition);
       if (rc != RC::SUCCESS) {
         return rc;
@@ -400,4 +388,112 @@ RC SelectHandler::add_condition_to_join_filter(const Condition* condition) {
   join_filter_.push_back(filter);
 
   return RC::SUCCESS;
+}
+
+RC SelectHandler::solve_sub_query_if_exist(Condition* condition) {
+  RC rc = RC::SUCCESS;
+  if (!condition->left_is_attr && condition->left_value.type == SUB_QUERYS) {
+    Selects* selects = (Selects*)condition->left_value.data;
+    if (selects->aggregate_num != 1) {
+      return RC::SCHEMA_FIELD_REDUNDAN;
+    }
+
+    // FIXME: 没考虑释放内存
+    TupleSet* result_set = new TupleSet();
+    SelectHandler select_handler;
+    rc = select_handler.init(db_, selects, trx_);
+    if (rc != RC::SUCCESS) {
+      return rc;
+    }
+    rc = select_handler.handle(*result_set);
+    if (rc != RC::SUCCESS) {
+      return rc;
+    }
+
+    // FIXME: 释放内存
+    if (result_set->size() != 1) {
+      return RC::GENERIC_ERROR;
+    } else {
+      const auto& value = result_set->tuples()[0].get_pointer(0);
+      switch (value->type()) {
+        case INTS:
+          condition->left_value.type = INTS;
+          condition->left_value.data = malloc(sizeof(int));
+          memcpy(condition->left_value.data, value->get(), sizeof(int));
+          break;
+        case FLOATS:
+          condition->left_value.type = FLOATS;
+          condition->left_value.data = malloc(sizeof(float));
+          memcpy(condition->left_value.data, value->get(), sizeof(float));
+          break;
+        case CHARS:
+          condition->left_value.type = CHARS;
+          condition->left_value.data = malloc(4);
+          memcpy(condition->left_value.data, value->get(), 4);
+          break;
+        case DATES:
+          condition->left_value.type = DATES;
+          condition->left_value.data = malloc(sizeof(int));
+          memcpy(condition->left_value.data, value->get(), sizeof(int));
+          break;
+        default:
+          return RC::GENERIC_ERROR;
+          break;
+      }
+    }
+  }
+
+  if (!condition->right_is_attr && condition->right_value.type == SUB_QUERYS) {
+    Selects* selects = (Selects*)condition->right_value.data;
+    if (selects->attr_num != 1) {
+      return RC::SCHEMA_FIELD_REDUNDAN;
+    }
+
+    TupleSet* result_set = new TupleSet();
+    SelectHandler select_handler;
+    rc = select_handler.init(db_, selects, trx_);
+    if (rc != RC::SUCCESS) {
+      return rc;
+    }
+    rc = select_handler.handle(*result_set);
+    if (rc != RC::SUCCESS) {
+      return rc;
+    }
+
+    if (result_set->size() != 1) {
+      if (condition->comp == OP_IN || condition->comp == NOT_IN) {
+        condition->right_value.data = result_set;
+      } else {
+        return RC::GENERIC_ERROR;
+      }
+    } else {
+      const auto& value = result_set->tuples()[0].get_pointer(0);
+      switch (value->type()) {
+        case INTS:
+          condition->right_value.type = INTS;
+          condition->right_value.data = malloc(sizeof(int));
+          memcpy(condition->right_value.data, value->get(), sizeof(int));
+          break;
+        case FLOATS:
+          condition->right_value.type = FLOATS;
+          condition->right_value.data = malloc(sizeof(float));
+          memcpy(condition->right_value.data, value->get(), sizeof(float));
+          break;
+        case CHARS:
+          condition->right_value.type = CHARS;
+          condition->right_value.data = malloc(4);
+          memcpy(condition->right_value.data, value->get(), 4);
+          break;
+        case DATES:
+          condition->right_value.type = DATES;
+          condition->right_value.data = malloc(sizeof(int));
+          memcpy(condition->right_value.data, value->get(), sizeof(int));
+          break;
+        default:
+          return RC::GENERIC_ERROR;
+          break;
+      }
+    }
+  }
+  return rc;
 }

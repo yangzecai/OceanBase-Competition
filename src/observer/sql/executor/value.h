@@ -18,6 +18,7 @@ See the Mulan PSL v2 for more details. */
 
 #include <ostream>
 #include <string>
+#include "sql/parser/parse_defs.h"
 
 class TupleValue {
  public:
@@ -27,6 +28,7 @@ class TupleValue {
   virtual void to_string(std::ostream& os) const = 0;
   virtual int compare(const TupleValue& other) const = 0;
   virtual const void* get() const = 0;
+  virtual AttrType type() const = 0;
 
  private:
 };
@@ -42,6 +44,7 @@ class IntValue : public TupleValue {
     return value_ - int_other.value_;
   }
   const void* get() const override { return &value_; }
+  AttrType type() const override { return INTS; }
 
  private:
   int value_;
@@ -81,6 +84,7 @@ class FloatValue : public TupleValue {
   }
 
   const void* get() const override { return &value_; }
+  AttrType type() const override { return FLOATS; }
 
  private:
   float value_;
@@ -99,6 +103,7 @@ class StringValue : public TupleValue {
   }
 
   const void* get() const override { return value_.data(); }
+  AttrType type() const override { return CHARS; }
 
  private:
   std::string value_;
@@ -125,6 +130,7 @@ class DateValue : public TupleValue {
   }
 
   const void* get() const override { return &value_; }
+  AttrType type() const override { return DATES; }
 
  private:
   int value_;
@@ -139,6 +145,7 @@ class NullValue : public TupleValue {
   int compare(const TupleValue& other) const override { return -2; }
 
   const void* get() const override { return nullptr; }
+  AttrType type() const override { return NULLS; }
 };
 
 class TextValue : public TupleValue {
@@ -155,6 +162,7 @@ class TextValue : public TupleValue {
   int compare(const TupleValue& other) const override { return -2; }
 
   const void* get() const override { return nullptr; }
+  AttrType type() const override { return TEXTS; }
 
  private:
   std::string value_;

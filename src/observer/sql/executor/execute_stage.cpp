@@ -218,13 +218,22 @@ RC ExecuteStage::do_select(const char* db, Query* sql,
                            SessionEvent* session_event) {
   RC rc = RC::SUCCESS;
   SelectHandler select_handler;
-  rc = select_handler.init(db, sql, session_event);
+  rc = select_handler.init(db, &sql->sstr.selection,
+                           session_event->get_client()->session->current_trx());
   if (rc != RC::SUCCESS) {
+    session_event->set_response("FAILURE\n");
     return rc;
   }
-  rc = select_handler.handle();
+
+  TupleSet result_set;
+  rc = select_handler.handle(result_set);
   if (rc != RC::SUCCESS) {
+    session_event->set_response("FAILURE\n");
     return rc;
   }
+
+  std::stringstream ss;
+  result_set.print(ss, select_handler.is_multi_table());
+  session_event->set_response(ss.str());
   return rc;
 }

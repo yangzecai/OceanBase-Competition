@@ -13,8 +13,10 @@ class SelectHandler {
  public:
   SelectHandler();
   ~SelectHandler();
-  RC init(const char* db, Query* sql, SessionEvent* session_event);
-  RC handle();
+  RC init(const char* db, Selects* selects, Trx* trx);
+  RC handle(TupleSet& tuple_set);
+
+  bool is_multi_table() { return tables_.size() > 1; }
 
  private:
   friend class AggregateExeNode;
@@ -43,10 +45,11 @@ class SelectHandler {
   RC add_condition_to_join_filter(const Condition* condition);
   bool is_join_condition(const Condition* condition);
 
+  RC solve_sub_query_if_exist(Condition* condition);
+
   const char* db_;
-  SessionEvent* session_event_;
   Trx* trx_;
-  const Selects* selects_;
+  Selects* selects_;
   std::vector<Table*> tables_;
   std::vector<TupleSchema> select_schemas_;
   TupleSchema project_schema_;

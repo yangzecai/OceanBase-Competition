@@ -25,7 +25,7 @@ struct ConDesc {
   int attr_length;  // 如果是属性，表示属性值长度
   int attr_offset;  // 如果是属性，表示在记录中的偏移量
   bool attr_nullable;
-  void* value;      // 如果是值类型，这里记录值的数据
+  void* value;  // 如果是值类型，这里记录值的数据
   bool value_is_null;
 };
 
@@ -46,8 +46,8 @@ class DefaultConditionFilter : public ConditionFilter {
   DefaultConditionFilter();
   virtual ~DefaultConditionFilter();
 
-  RC init(const ConDesc& left, const ConDesc& right, AttrType attr_type,
-          CompOp comp_op);
+  RC init(const ConDesc& left, const ConDesc& right, AttrType left_type,
+          AttrType right_type, CompOp comp_op);
   RC init(Table& table, const Condition& condition);
 
   virtual bool filter(const Record& rec) const;
@@ -60,9 +60,13 @@ class DefaultConditionFilter : public ConditionFilter {
   CompOp comp_op() const { return comp_op_; }
 
  private:
+  bool is_match_type(AttrType left_type, AttrType right_type) const;
+
   ConDesc left_;
   ConDesc right_;
-  AttrType attr_type_ = UNDEFINED;
+  // AttrType attr_type_ = UNDEFINED;
+  AttrType left_type_ = UNDEFINED;
+  AttrType right_type_ = UNDEFINED;
   CompOp comp_op_ = NO_OP;
 };
 
