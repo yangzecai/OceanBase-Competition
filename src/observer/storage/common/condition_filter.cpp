@@ -269,7 +269,7 @@ bool DefaultConditionFilter::filter(const Record& rec) const {
     }
   } else {  // left_type_ == SUB_QUERYS || right_type_ == SUB_QUERYS
     TupleSet* sub_query_result_set = ((TupleSet*)right_value);
-    if (sub_query_result_set->size() == 0) {
+    if (sub_query_result_set->size() == 0 && comp_op_ != NOT_IN) {
       return false;
     }
     AttrType sub_query_type = sub_query_result_set->schema().field(0).type();
