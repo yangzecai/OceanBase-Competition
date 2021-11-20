@@ -394,7 +394,7 @@ RC SelectHandler::solve_sub_query_if_exist(Condition* condition) {
   RC rc = RC::SUCCESS;
   if (!condition->left_is_attr && condition->left_value.type == SUB_QUERYS) {
     Selects* selects = (Selects*)condition->left_value.data;
-    if (selects->aggregate_num != 1) {
+    if (selects->attr_num != 1 || *selects->attributes->attribute_name == '*') {
       return RC::SCHEMA_FIELD_REDUNDAN;
     }
 
@@ -445,7 +445,7 @@ RC SelectHandler::solve_sub_query_if_exist(Condition* condition) {
 
   if (!condition->right_is_attr && condition->right_value.type == SUB_QUERYS) {
     Selects* selects = (Selects*)condition->right_value.data;
-    if (selects->attr_num != 1) {
+    if (selects->attr_num != 1 || *selects->attributes->attribute_name == '*') {
       return RC::SCHEMA_FIELD_REDUNDAN;
     }
 
