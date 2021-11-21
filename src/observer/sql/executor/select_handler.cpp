@@ -177,11 +177,15 @@ RC SelectHandler::init_conditions() {
       }
     } else {
       rc = solve_sub_query_if_exist(condition);
-      if (rc != RC::SUCCESS) {
-        return rc;
-      }
-      rc = add_condition_to_select_filters(condition);
-      if (rc != RC::SUCCESS) {
+      if (rc == RC::SUBQUERY) {
+        rc = RC::SUCCESS;
+        continue;
+      } else if (rc == RC::SUCCESS) {
+        rc = add_condition_to_select_filters(condition);
+        if (rc != RC::SUCCESS) {
+          return rc;
+        }
+      } else {
         return rc;
       }
     }
@@ -392,6 +396,7 @@ RC SelectHandler::add_condition_to_join_filter(const Condition* condition) {
 
 RC SelectHandler::solve_sub_query_if_exist(Condition* condition) {
   RC rc = RC::SUCCESS;
+  bool correlated_sub_query = false;
   if (!condition->left_is_attr && condition->left_value.type == SUB_QUERYS) {
     Selects* selects = (Selects*)condition->left_value.data;
     if (selects->attr_num != 1 || *selects->attributes->attribute_name == '*') {
@@ -404,49 +409,54 @@ RC SelectHandler::solve_sub_query_if_exist(Condition* condition) {
     rc = select_handler.init(db_, selects, trx_);
     if (rc != RC::SUCCESS) {
       if (select_handler.is_correlated_sub_query()) {
-        std::vector<Correlation> new_correlations =
+        correlated_sub_query = true;
+        std::vector<Correlation> parent_to_child =
             select_handler.get_correlations();
-        parent_to_child_.insert(parent_to_child_.end(),
-                                new_correlations.begin(),
-                                new_correlations.end());
-        return RC::SUCCESS;
+        Correlation child_to_parent;
+        child_to_parent.rel_attr = condition->left_attr;
+        child_to_parent.value = &condition->left_value;
+        condition->left_is_attr = 0;
+        add_correlated_condition_to_select_filters(
+            parent_to_child, child_to_parent, selects, condition);
+      } else {
+        return rc;
       }
-      return rc;
-    }
-    rc = select_handler.handle(*result_set);
-    if (rc != RC::SUCCESS) {
-      return rc;
-    }
-
-    // FIXME: 释放内存
-    if (result_set->size() != 1) {
-      return RC::GENERIC_ERROR;
     } else {
-      const auto& value = result_set->tuples()[0].get_pointer(0);
-      switch (value->type()) {
-        case INTS:
-          condition->left_value.type = INTS;
-          condition->left_value.data = malloc(sizeof(int));
-          memcpy(condition->left_value.data, value->get(), sizeof(int));
-          break;
-        case FLOATS:
-          condition->left_value.type = FLOATS;
-          condition->left_value.data = malloc(sizeof(float));
-          memcpy(condition->left_value.data, value->get(), sizeof(float));
-          break;
-        case CHARS:
-          condition->left_value.type = CHARS;
-          condition->left_value.data = malloc(4);
-          memcpy(condition->left_value.data, value->get(), 4);
-          break;
-        case DATES:
-          condition->left_value.type = DATES;
-          condition->left_value.data = malloc(sizeof(int));
-          memcpy(condition->left_value.data, value->get(), sizeof(int));
-          break;
-        default:
-          return RC::GENERIC_ERROR;
-          break;
+      rc = select_handler.handle(*result_set);
+      if (rc != RC::SUCCESS) {
+        return rc;
+      }
+
+      // FIXME: 释放内存
+      if (result_set->size() != 1) {
+        return RC::GENERIC_ERROR;
+      } else {
+        const auto& value = result_set->tuples()[0].get_pointer(0);
+        switch (value->type()) {
+          case INTS:
+            condition->left_value.type = INTS;
+            condition->left_value.data = malloc(sizeof(int));
+            memcpy(condition->left_value.data, value->get(), sizeof(int));
+            break;
+          case FLOATS:
+            condition->left_value.type = FLOATS;
+            condition->left_value.data = malloc(sizeof(float));
+            memcpy(condition->left_value.data, value->get(), sizeof(float));
+            break;
+          case CHARS:
+            condition->left_value.type = CHARS;
+            condition->left_value.data = malloc(4);
+            memcpy(condition->left_value.data, value->get(), 4);
+            break;
+          case DATES:
+            condition->left_value.type = DATES;
+            condition->left_value.data = malloc(sizeof(int));
+            memcpy(condition->left_value.data, value->get(), sizeof(int));
+            break;
+          default:
+            return RC::GENERIC_ERROR;
+            break;
+        }
       }
     }
   }
@@ -461,49 +471,62 @@ RC SelectHandler::solve_sub_query_if_exist(Condition* condition) {
     SelectHandler select_handler;
     rc = select_handler.init(db_, selects, trx_);
     if (rc != RC::SUCCESS) {
-      return rc;
-    }
-    rc = select_handler.handle(*result_set);
-    if (rc != RC::SUCCESS) {
-      return rc;
-    }
-
-    if (condition->comp == OP_IN || condition->comp == NOT_IN) {
-      condition->right_value.data = result_set;
-    } else if (result_set->size() == 0) {
-      condition->right_value.data = result_set;
-    } else if (result_set->size() > 1) {
-      return RC::INVALID_ARGUMENT;
+      if (select_handler.is_correlated_sub_query()) {
+        correlated_sub_query = true;
+        std::vector<Correlation> parent_to_child =
+            select_handler.get_correlations();
+        Correlation child_to_parent;
+        child_to_parent.rel_attr = condition->right_attr;
+        child_to_parent.value = &condition->right_value;
+        condition->right_is_attr = 0;
+        add_correlated_condition_to_select_filters(
+            parent_to_child, child_to_parent, selects, condition);
+      } else {
+        return rc;
+      }
     } else {
-      const auto& value = result_set->tuples()[0].get_pointer(0);
-      switch (value->type()) {
-        case INTS:
-          condition->right_value.type = INTS;
-          condition->right_value.data = malloc(sizeof(int));
-          memcpy(condition->right_value.data, value->get(), sizeof(int));
-          break;
-        case FLOATS:
-          condition->right_value.type = FLOATS;
-          condition->right_value.data = malloc(sizeof(float));
-          memcpy(condition->right_value.data, value->get(), sizeof(float));
-          break;
-        case CHARS:
-          condition->right_value.type = CHARS;
-          condition->right_value.data = malloc(4);
-          memcpy(condition->right_value.data, value->get(), 4);
-          break;
-        case DATES:
-          condition->right_value.type = DATES;
-          condition->right_value.data = malloc(sizeof(int));
-          memcpy(condition->right_value.data, value->get(), sizeof(int));
-          break;
-        default:
-          return RC::GENERIC_ERROR;
-          break;
+      rc = select_handler.handle(*result_set);
+      if (rc != RC::SUCCESS) {
+        return rc;
+      }
+
+      if (condition->comp == OP_IN || condition->comp == NOT_IN) {
+        condition->right_value.data = result_set;
+      } else if (result_set->size() == 0) {
+        condition->right_value.data = result_set;
+      } else if (result_set->size() > 1) {
+        return RC::INVALID_ARGUMENT;
+      } else {
+        const auto& value = result_set->tuples()[0].get_pointer(0);
+        switch (value->type()) {
+          case INTS:
+            condition->right_value.type = INTS;
+            condition->right_value.data = malloc(sizeof(int));
+            memcpy(condition->right_value.data, value->get(), sizeof(int));
+            break;
+          case FLOATS:
+            condition->right_value.type = FLOATS;
+            condition->right_value.data = malloc(sizeof(float));
+            memcpy(condition->right_value.data, value->get(), sizeof(float));
+            break;
+          case CHARS:
+            condition->right_value.type = CHARS;
+            condition->right_value.data = malloc(4);
+            memcpy(condition->right_value.data, value->get(), 4);
+            break;
+          case DATES:
+            condition->right_value.type = DATES;
+            condition->right_value.data = malloc(sizeof(int));
+            memcpy(condition->right_value.data, value->get(), sizeof(int));
+            break;
+          default:
+            return RC::GENERIC_ERROR;
+            break;
+        }
       }
     }
   }
-  return rc;
+  return correlated_sub_query ? RC::SUBQUERY : RC::SUCCESS;
 }
 
 bool SelectHandler::is_correlated_sub_query() const {
@@ -537,14 +560,16 @@ std::vector<Correlation> SelectHandler::get_correlations() {
     if (condition.left_is_attr) {
       const char* table_name = condition.left_attr.relation_name;
       if (index_of_table(table_name) == -1) {
-        correlations.emplace_back(condition.left_attr, &condition.left_value);
+        correlations.push_back(
+            Correlation{condition.left_attr, &condition.left_value});
         condition.left_is_attr = 0;
       }
     }
     if (condition.right_is_attr) {
       const char* table_name = condition.right_attr.relation_name;
       if (index_of_table(table_name) == -1) {
-        correlations.emplace_back(condition.right_attr, &condition.right_value);
+        correlations.push_back(
+            Correlation{condition.right_attr, &condition.right_value});
         condition.right_is_attr = 0;
       }
     }
@@ -552,6 +577,28 @@ std::vector<Correlation> SelectHandler::get_correlations() {
   return correlations;
 }
 
-RC SelectHandler::init_correlations() {
-  
+RC SelectHandler::add_correlated_condition_to_select_filters(
+    std::vector<Correlation>& parent_to_child, Correlation& child_to_parent,
+    Selects* child_selects, const Condition* condition) {
+  RC rc = RC::SUCCESS;
+  if (tables_.size() > 1) {
+    LOG_ERROR("Unsupport %d tables correlated sub query\n", tables_.size());
+    return RC::GENERIC_ERROR;
+  }
+
+  if (parent_to_child.size() != 1) {
+    LOG_ERROR("Unsupport %d parent_to_child correlated sub query\n",
+              parent_to_child.size());
+    return RC::GENERIC_ERROR;
+  }
+
+  CorrelationFilter* condition_filter = new CorrelationFilter();
+  select_filters_[0].push_back(condition_filter);
+  rc = condition_filter->init(tables_[0], parent_to_child[0], child_to_parent,
+                              db_, child_selects, trx_,
+                              const_cast<Condition*>(condition));
+  if (rc != RC::SUCCESS) {
+    return rc;
+  }
+  return RC::SUCCESS;
 }

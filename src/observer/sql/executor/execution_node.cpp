@@ -19,7 +19,7 @@ See the Mulan PSL v2 for more details. */
 SelectExeNode::SelectExeNode() : trx_(nullptr), table_(nullptr) {}
 
 SelectExeNode::~SelectExeNode() {
-  for (DefaultConditionFilter*& filter : condition_filters_) {
+  for (ConditionFilter*& filter : condition_filters_) {
     delete filter;
   }
   condition_filters_.clear();
@@ -27,7 +27,7 @@ SelectExeNode::~SelectExeNode() {
 
 RC SelectExeNode::init(
     Trx* trx, Table* table, TupleSchema&& tuple_schema,
-    std::vector<DefaultConditionFilter*>&& condition_filters) {
+    std::vector<ConditionFilter*>&& condition_filters) {
   trx_ = trx;
   table_ = table;
   tuple_schema_ = tuple_schema;
@@ -641,31 +641,4 @@ AggregateExeNode::GroupId AggregateExeNode::get_group_id(
 bool AggregateExeNode::is_null(const TupleValue& tuple_value) const {
   const std::type_info& value_type = typeid(tuple_value);
   return value_type == typeid(NullValue);
-}
-
-CorrelationExeNode::CorrelationExeNode() {
-}
-
-CorrelationExeNode::~CorrelationExeNode() {
-}
-
-
-// void record_reader(const char* data, void* context) {
-//   TupleRecordConverter* converter = (TupleRecordConverter*)context;
-//   converter->add_record(data);
-// }
-// RC SelectExeNode::execute(TupleSet& tuple_set) {
-//   CompositeConditionFilter condition_filter;
-//   condition_filter.init((const ConditionFilter**)condition_filters_.data(),
-//                         condition_filters_.size());
-
-//   tuple_set.clear();
-//   tuple_set.set_schema(tuple_schema_);
-//   TupleRecordConverter converter(table_, tuple_set);
-//   return table_->scan_record(trx_, &condition_filter, -1, (void*)&converter,
-//                              record_reader);
-// }
-RC CorrelationExeNode::execute(TupleSet& tuple_set) {
-  tuple_set.set_schema(tuple_schema_);
-  
 }

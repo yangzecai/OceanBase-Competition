@@ -37,7 +37,7 @@ class SelectExeNode : public ExecutionNode {
   virtual ~SelectExeNode();
 
   RC init(Trx* trx, Table* table, TupleSchema&& tuple_schema,
-          std::vector<DefaultConditionFilter*>&& condition_filters);
+          std::vector<ConditionFilter*>&& condition_filters);
 
   RC execute(TupleSet& tuple_set) override;
 
@@ -45,7 +45,7 @@ class SelectExeNode : public ExecutionNode {
   Trx* trx_;
   Table* table_;
   TupleSchema tuple_schema_;
-  std::vector<DefaultConditionFilter*> condition_filters_;
+  std::vector<ConditionFilter*> condition_filters_;
 };
 
 class JoinExeNode : public ExecutionNode {
@@ -157,19 +157,6 @@ class AggregateExeNode : public ExecutionNode {
   const Selects* selects_;
   ExecutionNode* sub_node_;
   Cols group_attr_indexes_;
-};
-
-class CorrelationExeNode : public ExecutionNode {
- public:
-  CorrelationExeNode();
-  virtual ~CorrelationExeNode();
-
-  RC init(Trx* trx, SelectHandler* handler);
-  RC execute(TupleSet& tuple_set) override;
-
- private:
-  SelectHandler* handler_;
-  TupleSchema tuple_schema_;
 };
 
 #endif  //__OBSERVER_SQL_EXECUTOR_EXECUTION_NODE_H_

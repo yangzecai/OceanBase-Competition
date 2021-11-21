@@ -385,12 +385,12 @@ bool CompositeConditionFilter::filter(const Record& rec) const {
 
 CorrelationFilter::~CorrelationFilter() {}
 
-RC CorrelationFilter::init(const Table& parent_table,
-                           Correlation* parent_to_child,
-                           Correlation* child_to_parent, const char* db,
+RC CorrelationFilter::init(const Table* parent_table,
+                           Correlation parent_to_child,
+                           Correlation child_to_parent, const char* db,
                            Selects* child_selects, Trx* trx,
                            Condition* condition) {
-  parent_table_ = &parent_table;
+  parent_table_ = parent_table;
   parent_to_child_ = parent_to_child;
   child_to_parent_ = child_to_parent;
   db_ = db;
@@ -404,10 +404,10 @@ RC CorrelationFilter::init(const Table& parent_table,
 bool CorrelationFilter::filter(const Record& rec) const {
   const TableMeta& table_meta = parent_table_->table_meta();
   const FieldMeta* field =
-      table_meta.field(parent_to_child_->rel_attr.attribute_name);
+      table_meta.field(parent_to_child_.rel_attr.attribute_name);
 
-  parent_to_child_->value->type = field->type();
-  parent_to_child_->value->data = rec.data + field->offset();
+  parent_to_child_.value->type = field->type();
+  parent_to_child_.value->data = rec.data + field->offset();
 
   SelectHandler select_handler;
   RC rc = select_handler.init(db_, child_selects_, trx_);
@@ -427,8 +427,8 @@ bool CorrelationFilter::filter(const Record& rec) const {
   const std::shared_ptr<TupleValue> tuple_value =
       result_set.tuples()[0].get_pointer(0);
 
-  child_to_parent_->value->type = tuple_value->type();
-  child_to_parent_->value->data = const_cast<void*>(tuple_value->get());
+  child_to_parent_.value->type = tuple_value->type();
+  child_to_parent_.value->data = const_cast<void*>(tuple_value->get());
 
   rc = condition_filter_.init(*parent_table_, *condition_);
   if (rc != RC::SUCCESS) {

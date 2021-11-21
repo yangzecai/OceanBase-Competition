@@ -92,22 +92,26 @@ class CompositeConditionFilter : public ConditionFilter {
   bool memory_owner_ = false;  // filters_的内存是否由自己来控制
 };
 
-struct Correlation;
+class Trx;
+struct Correlation {
+  RelAttr rel_attr;
+  Value* value;
+};
 class CorrelationFilter : public ConditionFilter {
  public:
   CorrelationFilter() = default;
   virtual ~CorrelationFilter();
 
-  RC init(const Table& parent_table, Correlation* parent_to_child,
-          Correlation* child_to_parent, const char* db, Selects* child_selects,
+  RC init(const Table* parent_table, Correlation parent_to_child,
+          Correlation child_to_parent, const char* db, Selects* child_selects,
           Trx* trx, Condition* condition);
 
   virtual bool filter(const Record& rec) const override;
 
  private:
   const Table* parent_table_;
-  mutable Correlation* parent_to_child_;
-  mutable Correlation* child_to_parent_;
+  mutable Correlation parent_to_child_;
+  mutable Correlation child_to_parent_;
   const char* db_;
   Selects* child_selects_;
   Trx* trx_;

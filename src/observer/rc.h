@@ -199,6 +199,7 @@ enum RC {
   FORMAT,           /* Not used */
   RANGE,            /* 2nd parameter to bind out of range */
   NOTADB,           /* File opened that is not a database file */
+  SUBQUERY,
   NOTICE = 100,     /* Notifications from log() */
 
   /* buffer pool part */

@@ -9,11 +9,6 @@
 #include "sql/executor/tuple.h"
 #include "sql/parser/parse_defs.h"
 
-struct Correlation {
-  RelAttr rel_attr;
-  Value* value;
-};
-
 class SelectHandler {
  public:
   SelectHandler();
@@ -51,6 +46,10 @@ class SelectHandler {
   RC add_aggregate_to_schema(const Aggregate* aggregate, TupleSchema* schema);
 
   RC add_condition_to_select_filters(const Condition* condition);
+  RC add_correlated_condition_to_select_filters(
+      std::vector<Correlation>& parent_to_child,
+      Correlation& child_to_parent, Selects* child_selects,
+      const Condition* condition);
   RC add_condition_to_join_filter(const Condition* condition);
   bool is_join_condition(const Condition* condition);
 
@@ -62,13 +61,10 @@ class SelectHandler {
   std::vector<Table*> tables_;
   std::vector<TupleSchema> select_schemas_;
   TupleSchema project_schema_;
-  std::vector<std::vector<DefaultConditionFilter*>> select_filters_;
+  std::vector<std::vector<ConditionFilter*>> select_filters_;
   std::vector<JoinExeNode::JoinFilter> join_filter_;
   std::unordered_map<std::string, int> table_indexes_;
   std::shared_ptr<ExecutionNode> root_exe_node_;
-
-  std::vector<Correlation> parent_to_child_;
-  std::vector<Correlation> child_to_parent_;
 };
 
 #endif
